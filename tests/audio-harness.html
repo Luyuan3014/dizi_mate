@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>笛伴 · 合成输入验收（不使用真实麦克风）</title>
+  <body>
+    <div id="app"></div>
+    <aside
+      id="fixture-controls"
+      style="
+        position: fixed;
+        z-index: 100;
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
+        background: #172d24;
+        color: white;
+        padding: 12px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        font: 13px sans-serif;
+        border: 2px solid #e99355;
+        border-radius: 8px;
+      "
+    >
+      <strong>测试输入 · 非真实麦克风 · 记录只存在内存</strong>
+      <button id="correct">输入正确音 B4</button>
+      <button id="high">输入偏高 80 音分</button>
+      <button id="silent">输入静音</button>
+      <button id="deny">下次拒绝授权</button>
+      <button id="disconnect">模拟设备断开</button>
+      <span id="fixture-state">初始：静音</span>
+    </aside>
+    <script type="module">
+      // Dev-only integration fixture; Vite's production build only includes index.html.
+      // This fixture never calls the real getUserMedia and never writes real localStorage.
+      const memory = new Map();
+      Object.defineProperty(window, "localStorage", {
+        value: {
+          getItem: (key) => memory.get(key) || null,
+          setItem: (key, value) => memory.set(key, value),
+        },
+      });
+      let context, oscillator, gain, destination;
+      let frequency = 493.883301;
+      let volume = 0;
+      let denied = false;
+      const tracks = [];
+      Object.defineProperty(navigator, "mediaDevices", {
+        value: {
+          getUserMedia: async () => {
+            if (denied) {
+              denied = false;
+              throw new DOMException("Fixture: denied", "NotAllowedError");
+            }
+            context ||= new AudioContext();
+            await context.resume();
+            if (!oscillator) {
+              oscillator = context.createOscillator();
+              gain = context.createGain();
+              destination = context.createMediaStreamDestination();
+              oscillator.connect(gain).connect(destination);
+              oscillator.start();
+            }
+            oscillator.frequency.value = frequency;
+            gain.gain.value = volume;
+            const stream = destination.stream.clone();
+            tracks.push(...stream.getTracks());
+            return stream;
+          },
+        },
+      });
+      function input(hz, amplitude, description) {
+        frequency = hz;
+        volume = amplitude;
+        if (oscillator) {
+          oscillator.frequency.value = hz;
+          gain.gain.value = amplitude;
+        }
+        document.querySelector("#fixture-state").textContent = description;
+      }
+      document.querySelector("#correct").onclick = () =>
+        input(493.883301, 0.2, "输入：正确 B4");
+      document.querySelector("#high").onclick = () =>
+        input(493.883301 * 2 ** (80 / 1200), 0.2, "输入：偏高 80 音分");
+      document.querySelector("#silent").onclick = () =>
+        input(493.883301, 0, "输入：静音");
+      document.querySelector("#deny").onclick = () => {
+        denied = true;
+        document.querySelector("#fixture-state").textContent = "下次请求将拒绝";
+      };
+      document.querySelector("#disconnect").onclick = () => {
+        tracks.forEach((track) => {
+          const handler = track.onended;
+          track.stop();
+          handler?.();
+        });
+        document.querySelector("#fixture-state").textContent = "设备已断开";
+      };
+      await import("/src/main.js");
+    </script>
+  </body>
+</html>
