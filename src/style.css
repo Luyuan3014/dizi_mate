@@ -622,231 +622,132 @@ h1 span {
 }
 .flute-diagram {
   position: relative;
-  height: 155px;
-  margin: 0 -3px;
-  container-type: inline-size;
+  width: 100%;
+  max-width: 820px;
+  margin: 10px auto 14px;
+  user-select: none;
+  transition: filter 0.3s ease;
 }
-.hand-guides {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 48px;
+.flute-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.guide-text {
+  font-family: inherit;
   font-size: 11px;
-  display: flex;
-  align-items: start;
-  color: #8b987c;
+  fill: #7d8c70;
 }
-.mouth-guide {
-  width: 29%;
-  padding: 15px 0 0 6%;
-  font-size: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  align-items: flex-start;
-  color: #a6ae99;
+.guide-mouth {
+  font-size: 10.5px;
+  fill: #8f9e80;
+  font-weight: 500;
 }
-.mouth-guide .icon {
-  width: 11px;
-  height: 11px;
-  margin-left: 16px;
-  transform: rotate(-17deg);
-}
-.left-hand,
-.right-hand {
-  width: 29%;
-  text-align: center;
-  border-bottom: 1px solid #e7eadc;
-  padding-bottom: 10px;
-  position: relative;
+.guide-hand-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  fill: #5b6f4e;
   letter-spacing: 1px;
 }
-.left-hand {
-  margin-right: 2%;
+.guide-subtext {
+  font-size: 9.5px;
+  fill: #97a28b;
+  letter-spacing: 0.8px;
 }
-.left-hand:after,
-.right-hand:after {
-  content: "";
-  height: 5px;
-  width: 1px;
-  background: #e7eadc;
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
+.hole-num-text {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  fill: #9fa891;
+  transition: fill 0.2s ease, transform 0.2s ease;
 }
-.hand-guides span span {
-  display: block;
+.hole-num-text.num-covered {
+  fill: #3b5539;
+  font-weight: 700;
+}
+.axis-label {
+  font-family: inherit;
   font-size: 10px;
-  letter-spacing: 2px;
-  margin-top: 5px;
-  color: #a7ae9a;
+  fill: #abb49d;
 }
-.bamboo-body {
-  position: absolute;
-  top: 70px;
-  height: 29px;
-  left: 0;
-  right: 0;
-  border-radius: 7px 4px 4px 7px;
-  background: linear-gradient(
-    0deg,
-    #b48439,
-    #d7b36c 17%,
-    #edcf8b 43%,
-    #f3d997 60%,
-    #dec181 85%,
-    #b29355
-  );
-  box-shadow:
-    0 6px 9px #71532413,
-    inset 0 1px 1px #fff8c0,
-    inset 0 -1px 1px #ad874e;
-  border: 1px solid #d1b173;
+
+/* Interactive Hole Buttons */
+.interactive-hole {
+  pointer-events: all;
+  cursor: pointer;
+  outline: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.16s ease;
 }
-.bamboo-body:after {
-  content: "";
-  position: absolute;
-  inset: 5px 2px;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 3px,
-    #986c3310 3px,
-    #986c3310 4px
-  );
+.interactive-hole:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 2px 7px rgba(65, 96, 62, 0.45));
+}
+.interactive-hole:active {
+  transform: scale(0.92);
+}
+.flute-blow-hole {
+  pointer-events: all;
+  cursor: pointer;
+  outline: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+.flute-blow-hole:hover {
+  transform: scale(1.07);
+  filter: drop-shadow(0 2px 8px rgba(214, 148, 52, 0.55));
+}
+.flute-blow-hole:active {
+  transform: scale(0.92);
+}
+
+/* Playing Animation */
+.flute-playing .breath-wave {
   pointer-events: none;
+  animation: breathPulse 1.2s infinite ease-out;
 }
-.bamboo-cap {
-  position: absolute;
-  left: 0;
-  top: -1px;
-  bottom: -1px;
-  width: 10px;
-  border-radius: 6px 0 0 6px;
-  background: linear-gradient(#b9883d, #e2c780, #ab7e3a);
-  border-right: 2px solid #957536;
+@keyframes breathPulse {
+  0% {
+    rx: 12px;
+    ry: 8.5px;
+    stroke: #e8984a;
+    opacity: 0.95;
+    stroke-width: 2px;
+  }
+  100% {
+    rx: 26px;
+    ry: 18px;
+    stroke: #d47e2b;
+    opacity: 0;
+    stroke-width: 0.6px;
+  }
 }
-.binding {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 14px;
-  background: repeating-linear-gradient(90deg, #834529 0 2px, #a45c37 2px 3px);
-  border-radius: 2px;
-  box-shadow: 0 0 1px #69341b;
+.flute-playing .membrane-skin {
+  animation: membraneTremble 0.12s infinite alternate ease-in-out;
 }
-.binding-one {
-  left: 3.5%;
-  width: 15px;
+@keyframes membraneTremble {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.04) translate(0.2px, -0.2px); }
 }
-.binding-two {
-  left: 23%;
-  width: 10px;
+.flute-playing .bamboo-flute-tube {
+  filter: drop-shadow(0 4px 14px rgba(212, 155, 62, 0.3));
+  transition: filter 0.3s;
 }
-.binding-three {
-  right: 4%;
-  width: 13px;
+
+/* In-Tune Resonance Visual Reward */
+.flute-diagram.in-tune .flute-svg {
+  filter: drop-shadow(0 4px 18px rgba(67, 115, 62, 0.45));
 }
-.blow-hole {
-  position: absolute;
-  left: 10%;
-  top: 7px;
-  width: 20px;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse at 50% 40%,
-    #44361d,
-    #674c21 65%,
-    #926a31
-  );
-  box-shadow:
-    0 1px 1px #fff1bb,
-    0 -1px 1px #8e682a;
+.flute-diagram.in-tune .jade-finger-disc {
+  filter: drop-shadow(0 0 6px rgba(110, 180, 105, 0.85));
+  animation: jadeGlow 1.2s infinite alternate ease-in-out;
 }
-.membrane-hole {
-  position: absolute;
-  left: 18%;
-  top: 7px;
-  width: 15px;
-  height: 11px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #dcd8ad, #eee7c6, #bcb798);
-  border: 1px solid #a9945d;
-  box-shadow: 0 1px #fae9b4;
-}
-.bamboo-end {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  border-radius: 50%;
-  background: #b1965b;
-  border: 1px solid #8c743c;
-}
-.finger-holes {
-  position: absolute;
-  left: 30%;
-  right: 10%;
-  top: 70px;
-  display: flex;
-  justify-content: space-between;
-}
-.finger-hole {
-  width: 29px;
-  height: 29px;
-  display: flex;
-  justify-content: center;
-  position: relative;
-}
-.finger-hole > span {
-  width: 27px;
-  height: 27px;
-  border: 2px solid #fff9e5;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 1px 4px #47412e2b;
-}
-.finger-hole.covered > span {
-  background: #496447;
-}
-.finger-hole.open > span {
-  background: #fcf8e7;
-  border-color: #69825b;
-  box-shadow: 0 0 0 2px #faf5e6;
-}
-.finger-hole.half-covered > span {
-  background: linear-gradient(90deg, #496447 50%, #fcf8e7 50%);
-  border-color: #69825b;
-  box-shadow: 0 0 0 2px #faf5e6;
-}
-.finger-hole .icon {
-  width: 12px;
-  height: 12px;
-  color: #f8f8e8;
-}
-.finger-hole small {
-  position: absolute;
-  top: 39px;
-  font-size: 10px;
-  color: #a0a88f;
-}
-.flute-direction {
-  position: absolute;
-  left: 4%;
-  right: 5%;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 10px;
-  color: #adb39f;
-}
-.flute-direction i {
-  height: 1px;
-  flex: 1;
-  background: #edf0e6;
+@keyframes jadeGlow {
+  0% { filter: drop-shadow(0 0 3px rgba(110, 180, 105, 0.5)); }
+  100% { filter: drop-shadow(0 0 7px rgba(125, 205, 120, 0.95)); }
 }
 .fingering-caption {
   display: flex;
@@ -863,17 +764,38 @@ h1 span {
   gap: 5px;
 }
 .legend-hole {
-  width: 8px;
-  height: 8px;
-  border: 1px solid #7e9270;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   display: inline-block;
+  box-shadow: 0 1px 2px rgba(40, 30, 20, 0.15);
+  vertical-align: middle;
 }
 .legend-hole.closed {
-  background: #55734a;
+  background: radial-gradient(circle at 38% 32%, #5e825a, #365033);
+  border: 1px solid #d8b870;
+}
+.legend-hole:not(.closed):not(.half) {
+  background: radial-gradient(circle at 48% 45%, #0f0a06, #281a10);
+  border: 1px solid #8c6832;
 }
 .legend-hole.half {
-  background: linear-gradient(90deg, #55734a 50%, transparent 50%);
+  background: linear-gradient(90deg, #446440 50%, #1a120b 50%);
+  border: 1px solid #d8b870;
+}
+.caption-tip {
+  color: #a1ad96;
+  font-size: 10.5px;
+  margin-left: 8px;
+}
+.target-hz-badge {
+  font-size: 13px;
+  color: #8c9880;
+  margin-top: 4px;
+}
+.target-hz-badge strong {
+  color: #3f5d3d;
+  font-weight: 600;
 }
 .fingering-caption button {
   font-size: 11px;
@@ -1598,24 +1520,9 @@ h1 span {
   font-weight: 500;
 }
 .explorer-card .flute-diagram {
-  max-width: 790px;
-  margin: 0 auto 25px;
-  height: 200px;
-}
-.explorer-card .bamboo-body {
-  top: 88px;
-  height: 36px;
-}
-.explorer-card .finger-holes {
-  top: 89px;
-}
-.explorer-card .finger-hole > span {
-  width: 33px;
-  height: 33px;
-}
-.explorer-card .blow-hole,
-.explorer-card .membrane-hole {
-  top: 10px;
+  max-width: 820px;
+  margin: 0 auto 22px;
+  height: auto;
 }
 .explorer-card .breath-tip {
   padding: 20px;
@@ -2070,14 +1977,8 @@ dialog .button-primary {
     font-size: 14px;
   }
   .flute-diagram {
-    height: 175px;
-  }
-  .bamboo-body {
-    top: 78px;
-    height: 33px;
-  }
-  .finger-holes {
-    top: 80px;
+    height: auto;
+    margin: 6px auto 10px;
   }
   .breath-tip p {
     font-size: 13px;
@@ -2432,25 +2333,8 @@ dialog .button-primary {
     font-size: 12px;
   }
   .flute-diagram {
-    margin-top: 26px;
-    height: 146px;
-  }
-  .hand-guides span span {
-    letter-spacing: 0px;
-    font-size: 10px;
-  }
-  .mouth-guide {
-    padding-left: 4%;
-    font-size: 10px;
-  }
-  .finger-holes {
-    left: 29%;
-    right: 9%;
-    top: 73px;
-  }
-  .finger-hole > span {
-    width: 23px;
-    height: 23px;
+    margin: 12px auto 8px;
+    height: auto;
   }
   .fingering-caption {
     padding-top: 14px;
@@ -2615,22 +2499,8 @@ dialog .button-primary {
     padding: 10px;
   }
   .explorer-card .flute-diagram {
-    height: 157px;
-  }
-  .explorer-card .bamboo-body {
-    height: 29px;
-    top: 70px;
-  }
-  .explorer-card .finger-holes {
-    top: 73px;
-  }
-  .explorer-card .finger-hole > span {
-    height: 23px;
-    width: 23px;
-  }
-  .explorer-card .blow-hole,
-  .explorer-card .membrane-hole {
-    top: 7px;
+    height: auto;
+    margin: 8px auto 14px;
   }
   .explorer-card .breath-tip {
     padding: 15px;
@@ -3044,4 +2914,99 @@ dialog .button-primary {
   .explorer-target {
     flex-wrap: wrap;
   }
+}
+
+.hit-target {
+  pointer-events: all !important;
+  cursor: pointer;
+}
+
+.hand-guide-svg,
+.mouth-guide-svg,
+.flute-axis-line,
+.flute-hole-numbers,
+.flute-tassel,
+.bamboo-node,
+.guide-text,
+.guide-subtext,
+.hole-num-text,
+.axis-label {
+  pointer-events: none !important;
+}
+
+/* Interactive Overlay HTML Buttons */
+.flute-blow-btn {
+  position: absolute;
+  z-index: 15;
+  left: 12.09%;
+  top: 45.14%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  outline: none;
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+.flute-blow-btn:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+  filter: drop-shadow(0 0 8px rgba(224, 153, 56, 0.65));
+}
+.flute-blow-btn:active {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+.flute-hole-btn {
+  position: absolute;
+  z-index: 15;
+  top: 45.14%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  outline: none;
+  padding: 0;
+  border-radius: 50%;
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.flute-hole-btn:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+.flute-hole-btn:active {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+.flute-hole-btn .hole-disc {
+  pointer-events: none;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: block;
+  transition: all 0.2s ease;
+}
+.flute-hole-btn.covered .hole-disc {
+  background: radial-gradient(circle at 36% 32%, #5c8357 0%, #3f5f3c 45%, #273b25 85%, #182617 100%);
+  border: 1.5px solid #d8b870;
+  box-shadow: 0 2px 5px rgba(25, 18, 10, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+.flute-hole-btn.open .hole-disc {
+  background: radial-gradient(circle at 48% 45%, #0d0805 0%, #1e130b 65%, #2c1a0e 100%);
+  border: 1.5px solid #8e682e;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85), 0 1px 1px rgba(255, 240, 190, 0.4);
+}
+.flute-hole-btn.half .hole-disc {
+  background: linear-gradient(90deg, #446440 50%, #120b06 50%);
+  border: 1.5px solid #d8b870;
+  box-shadow: 0 2px 4px rgba(25, 18, 10, 0.35);
+}
+.flute-diagram.in-tune .flute-hole-btn.covered .hole-disc {
+  box-shadow: 0 0 10px rgba(110, 180, 105, 0.9), 0 2px 5px rgba(25, 18, 10, 0.35);
 }

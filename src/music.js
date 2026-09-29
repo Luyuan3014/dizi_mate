@@ -198,3 +198,25 @@ export function readSaved(storage) {
     return defaults;
   }
 }
+
+const PITCH_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+export function pitchNameFor(note, key = "E") {
+  if (!note || typeof note.offset !== "number") return "";
+  const midi = (KEYS[key] || 76) + note.offset;
+  const name = PITCH_NAMES[((midi % 12) + 12) % 12];
+  const octave = Math.floor(midi / 12) - 1;
+  return name + octave;
+}
+
+export function noteForHoles(holes, preferOverblow = false) {
+  if (!Array.isArray(holes) || holes.length !== 6) return null;
+  const matches = NOTES.filter((n) =>
+    n.holes.every((h, i) => Math.abs(h - (holes[i] ?? 0)) < 0.2),
+  );
+  if (!matches.length) return null;
+  if (matches.length === 1) return matches[0];
+  return preferOverblow
+    ? matches.find((n) => n.overblow) || matches[0]
+    : matches.find((n) => !n.overblow) || matches[0];
+}

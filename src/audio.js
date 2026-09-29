@@ -54,32 +54,81 @@ export class AudioEngine {
     return this.context;
   }
 
+  getFluteWave() {
+    if (!this.fluteWave && this.context) {
+      const real = new Float32Array([0, 0, 0, 0, 0, 0, 0, 0]);
+      const imag = new Float32Array([0, 1.0, 0.38, 0.22, 0.11, 0.06, 0.035, 0.018]);
+      this.fluteWave = this.context.createPeriodicWave(real, imag);
+    }
+    return this.fluteWave;
+  }
+
   async tone(frequency, duration = 1.5) {
     const context = await this.ready();
+    const now = context.currentTime;
     const oscillator = context.createOscillator();
+    const wave = this.getFluteWave();
+    if (wave) {
+      oscillator.setPeriodicWave(wave);
+    } else {
+      oscillator.type = "triangle";
+    }
+    oscillator.frequency.setValueAtTime(frequency, now);
+
+    // Subtle natural breath vibrato
+    const vibrato = context.createOscillator();
+    const vibratoGain = context.createGain();
+    vibrato.frequency.setValueAtTime(4.6, now);
+    vibratoGain.gain.setValueAtTime(frequency * 0.0025, now);
+    vibrato.connect(oscillator.frequency);
+
+    // Acoustic lowpass filter modeling bamboo body resonance
+    const filter = context.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(Math.max(3200, frequency * 3.5), now);
+    filter.Q.setValueAtTime(1.0, now);
+
+    // Dynamic envelope (breath attack, sustain, gentle release)
     const gain = context.createGain();
-    oscillator.type = "triangle";
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0, context.currentTime);
-    gain.gain.linearRampToValueAtTime(0.12, context.currentTime + 0.06);
+    const attack = 0.05;
+    const release = 0.14;
+    const peakVolume = 0.15;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(peakVolume, now + attack);
     gain.gain.setValueAtTime(
-      0.12,
-      context.currentTime + Math.max(0.07, duration - 0.12),
+      peakVolume,
+      now + Math.max(attack + 0.01, duration - release),
     );
-    gain.gain.linearRampToValueAtTime(0, context.currentTime + duration);
-    oscillator.connect(gain).connect(context.destination);
+    gain.gain.linearRampToValueAtTime(0, now + duration);
+
+    oscillator.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+
     this.mutedUntil = Math.max(
       this.mutedUntil,
       performance.now() + duration * 1000 + 400,
     );
     this.oscillators.add(oscillator);
+    this.oscillators.add(vibrato);
+
     oscillator.onended = () => {
       this.oscillators.delete(oscillator);
+      this.oscillators.delete(vibrato);
+      try {
+        vibrato.stop();
+      } catch {}
       oscillator.disconnect();
+      vibrato.disconnect();
+      vibratoGain.disconnect();
+      filter.disconnect();
       gain.disconnect();
     };
-    oscillator.start();
-    oscillator.stop(context.currentTime + duration);
+
+    vibrato.start(now + 0.08);
+    vibrato.stop(now + duration);
+    oscillator.start(now);
+    oscillator.stop(now + duration);
   }
 
   stopTones() {
@@ -90,6 +139,7 @@ export class AudioEngine {
         /* Already ended. */
       }
     });
+    this.oscillators.clear();
     this.mutedUntil = performance.now() + 400;
   }
 

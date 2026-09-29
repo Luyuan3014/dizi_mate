@@ -9,6 +9,8 @@ import {
   describePitch,
   nearestNote,
   readSaved,
+  pitchNameFor,
+  noteForHoles,
 } from "./music.js";
 
 const paths = {
@@ -57,6 +59,7 @@ const state = {
   lesson: LESSONS[0],
   index: 0,
   note: NOTES[0],
+  customHoles: null,
   mic: "off",
   demo: false,
   passed: new Set(),
@@ -146,9 +149,9 @@ function practicePage(stats) {
         <div class="card-top"><span class="section-kicker"><span class="tiny-dot"></span> 今日的小练习</span><span class="level-tag">零基础 · 第 ${LESSONS.findIndex((lesson) => lesson.id === state.lesson.id) + 1} 步</span></div>
         <div class="lesson-heading"><div><h2>${state.lesson.name}</h2><p>${state.lesson.instruction}</p></div><button class="round-help" data-action="help" aria-label="查看吹奏方法">${icon("help")}</button></div>
         <div class="practice-tabs" aria-label="练习方式"><span class="selected">${icon("hand")} 看指法，跟着吹</span><button data-action="notation">${icon("book")} 简谱怎么看？${icon("chevron")}</button></div>
-        <div class="target-note-row"><div class="target-note">${noteMarkup(state.note)}<div><strong>${state.note.solfege} <span>${state.note.low ? "低音" : state.note.overblow ? "超吹音" : "中音"}</span></strong><p>${state.note.title}</p></div></div><button class="button button-outline listen-button" data-action="listen">${icon(state.demo ? "pause" : "volume")}<span>${state.demo ? "停止示范" : "听听这个音"}</span></button></div>
+        <div class="target-note-row"><div class="target-note">${noteMarkup(state.note)}<div><strong>${state.note.solfege} <span>${state.note.low ? "低音" : state.note.overblow ? "超吹音" : "中音"} · ${pitchNameFor(state.note, state.key)}</span></strong><p>${state.note.title}</p></div></div><button class="button button-outline listen-button" data-action="listen">${icon(state.demo ? "pause" : "volume")}<span>${state.demo ? "停止示范" : "听听这个音"}</span></button></div>
         ${fluteDiagram(state.note)}
-        <div class="fingering-caption"><span><i class="legend-hole closed"></i>按住</span><span><i class="legend-hole"></i>松开</span>${state.note.holes.includes(0.5) ? '<span><i class="legend-hole half"></i>半孔</span>' : ""}<button data-action="fingering">查看全部指法 ${icon("arrow")}</button></div>
+        <div class="fingering-caption"><span><i class="legend-hole closed"></i>按住（润玉指触）</span><span><i class="legend-hole"></i>松开（通透内膛）</span>${state.note.holes.includes(0.5) ? '<span><i class="legend-hole half"></i>半孔</span>' : ""}<span class="caption-tip">💡 点击吹孔试听，点击音孔可试按</span><button data-action="fingering">查看全部指法 ${icon("arrow")}</button></div>
         <div class="breath-tip"><span class="tip-icon">${icon("leaf")}</span><div><strong>${state.note.overblow ? "试着集中气流" : "给你一个小提示"}</strong><p>${state.note.tip}</p></div></div>
         <div class="score-strip"><div class="score-label"><span>${state.lesson.id === "song" ? "两只老虎 · 开头两句" : "这次练习的音"}</span><small>${state.lesson.id === "song" ? "一个数字，就是一拍" : "点击数字，看看指法"}</small></div><div class="score-notes">${state.lesson.sequence.map((id, index) => `<button class="score-note ${index === state.index ? "current" : ""} ${state.passed.has(`${state.lesson.id}:${index}:${id}`) ? "passed" : ""}" data-action="select-note" data-index="${index}" aria-label="练习第 ${index + 1} 个音 ${id.startsWith("low") ? "低音" : ""}${NOTES.find((n) => n.id === id).number}" ${index === state.index ? 'aria-current="step"' : ""}>${noteMarkup(NOTES.find((n) => n.id === id))}<span>${state.lesson.id === "song" ? ["两", "只", "老", "虎", "两", "只", "老", "虎"][index] : NOTES.find((n) => n.id === id).solfege}</span></button>`).join("")}</div><button class="score-play" data-action="demo" aria-label="播放整段参考旋律">${icon(state.demo ? "pause" : "play")}</button></div>
         <div class="practice-card-footer"><span>${icon("headphone")} 参考音为合成音，帮你找到音高</span><button data-action="next">${state.index < state.lesson.sequence.length - 1 ? "下一个音" : LESSONS.indexOf(state.lesson) < 2 ? "下一小步" : "再练一次"} ${icon("arrow")}</button></div>
@@ -158,7 +161,7 @@ function practicePage(stats) {
           <div class="listening-orb" id="listening-orb"><div class="orb-ring"></div><div class="orb-ring second"></div><span>${icon("mic")}</span><i class="orb-spark spark-one"></i><i class="orb-spark spark-two"></i></div>
           <h2 id="feedback-title" aria-live="polite" aria-atomic="true">我在这里，听你吹奏</h2><p class="feedback-copy" id="feedback-copy">不怕吹错，每一声都是进步。</p>
           <div class="waveform" id="waveform" aria-hidden="true">${Array.from({ length: 35 }, (_, i) => `<i style="--wave:${8 + Math.sin(i * 1.1) ** 2 * (13 + Math.sin(i / 6) ** 2 * 21)}px;--delay:${i * -0.075}s"></i>`).join("")}</div>
-          <div class="pitch-panel"><div class="pitch-values"><span>当前音高 <strong id="actual-pitch">—</strong></span><span>目标 <strong id="target-pitch">${state.note.low ? "低音 " : ""}${state.note.number} · ${Math.round(frequencyFor(state.note, state.key, state.reference))} Hz</strong></span></div><div class="pitch-scale"><span class="pitch-safe-zone" style="left:${50 - state.tolerance * 0.46}%;width:${state.tolerance * 0.92}%"></span><i id="pitch-indicator" hidden></i><span class="pitch-center"></span></div><div class="pitch-scale-labels"><span>偏低</span><span>刚刚好</span><span>偏高</span></div></div>
+          <div class="pitch-panel"><div class="pitch-values"><span>当前音高 <strong id="actual-pitch">—</strong></span><span>目标 <strong id="target-pitch">${state.note.low ? "低音 " : ""}${state.note.number} (${pitchNameFor(state.note, state.key)}) · ${Math.round(frequencyFor(state.note, state.key, state.reference))} Hz</strong></span></div><div class="pitch-scale"><span class="pitch-safe-zone" style="left:${50 - state.tolerance * 0.46}%;width:${state.tolerance * 0.92}%"></span><i id="pitch-indicator" hidden></i><span class="pitch-center"></span></div><div class="pitch-scale-labels"><span>偏低</span><span>刚刚好</span><span>偏高</span></div></div>
           <button class="button mic-button" id="mic-button" data-action="mic">${icon("mic")} 开启麦克风，试着吹</button><div class="privacy-note">${icon("shield")} 声音只在本机处理，不录音、不上传</div>
           <div class="live-progress" id="live-progress"></div>
         </section>
@@ -169,17 +172,209 @@ function practicePage(stats) {
 }
 
 function fluteDiagram(note) {
-  return `<div class="flute-diagram" role="img" aria-label="吹孔在左。从左到右，第六至第一音孔：${note.holes.map((hole, i) => `第${6 - i}孔${hole === 1 ? "按住" : hole === 0.5 ? "半按" : "松开"}`).join("，")}">
-    <div class="hand-guides"><span class="mouth-guide">吹孔在这边 ${icon("down")}</span><span class="left-hand">左手<span>食指 · 中指 · 无名指</span></span><span class="right-hand">右手<span>食指 · 中指 · 无名指</span></span></div>
-    <div class="bamboo-body"><span class="bamboo-cap"></span><span class="binding binding-one"></span><span class="blow-hole"></span><span class="membrane-hole"></span><span class="binding binding-two"></span><span class="binding binding-three"></span><span class="bamboo-end"></span></div>
-    <div class="finger-holes">${note.holes.map((hole, i) => `<span class="finger-hole ${hole === 1 ? "covered" : hole === 0.5 ? "half-covered" : "open"}"><span>${hole === 1 ? icon("check") : ""}</span><small>${6 - i}</small></span>`).join("")}</div>
-    <div class="flute-direction"><span>靠近吹孔</span><i></i><span>靠近笛尾</span></div>
+  const isPlaying = state.demo;
+  const activeHoles = (state.page === "fingering" && state.customHoles) ? state.customHoles : note.holes;
+  const holePositions = [36.28, 45.12, 54.42, 66.74, 75.58, 84.65];
+
+  return `<div class="flute-diagram ${isPlaying ? "flute-playing" : ""}" role="region" aria-label="吹孔在左。从左到右，第六至第一音孔：${activeHoles.map((hole, i) => `第${6 - i}孔${hole === 1 ? "按住" : hole === 0.5 ? "半孔" : "松开"}`).join("，")}">
+    <svg class="flute-svg" viewBox="0 0 860 144" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="bamboo-cylinder" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#b47f37" />
+          <stop offset="8%" stop-color="#d6ab62" />
+          <stop offset="28%" stop-color="#f5dc99" />
+          <stop offset="50%" stop-color="#fef3c7" />
+          <stop offset="72%" stop-color="#ddba77" />
+          <stop offset="90%" stop-color="#b78944" />
+          <stop offset="100%" stop-color="#956729" />
+        </linearGradient>
+
+        <pattern id="bamboo-grain" width="50" height="4" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="1" x2="50" y2="1" stroke="#875b22" stroke-width="0.5" opacity="0.18" />
+          <line x1="0" y1="3" x2="50" y2="3" stroke="#fff8d6" stroke-width="0.5" opacity="0.25" />
+        </pattern>
+
+        <pattern id="cord-pattern" width="3" height="38" patternUnits="userSpaceOnUse">
+          <line x1="0.6" y1="0" x2="0.6" y2="38" stroke="#1c110a" stroke-width="0.9" />
+          <line x1="1.8" y1="0" x2="1.8" y2="38" stroke="#5a341f" stroke-width="1.2" />
+          <line x1="2.8" y1="0" x2="2.8" y2="38" stroke="#140b06" stroke-width="0.9" />
+        </pattern>
+
+        <radialGradient id="hole-interior" cx="48%" cy="45%" r="55%">
+          <stop offset="0%" stop-color="#0a0604" />
+          <stop offset="65%" stop-color="#1c120b" />
+          <stop offset="100%" stop-color="#2d1c10" />
+        </radialGradient>
+
+        <linearGradient id="blow-bevel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#faecc0" />
+          <stop offset="100%" stop-color="#b6843c" />
+        </linearGradient>
+
+        <linearGradient id="membrane-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#fdfbf0" />
+          <stop offset="50%" stop-color="#f5edd0" />
+          <stop offset="100%" stop-color="#e8dcba" />
+        </linearGradient>
+
+        <linearGradient id="horn-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#161210" />
+          <stop offset="30%" stop-color="#3d322b" />
+          <stop offset="70%" stop-color="#29201a" />
+          <stop offset="100%" stop-color="#120e0c" />
+        </linearGradient>
+
+        <linearGradient id="brass-joint" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#cbb584" />
+          <stop offset="25%" stop-color="#fcedcc" />
+          <stop offset="60%" stop-color="#e6cf9c" />
+          <stop offset="90%" stop-color="#a48446" />
+          <stop offset="100%" stop-color="#80622d" />
+        </linearGradient>
+      </defs>
+
+      <!-- Top Guides: Mouth guide and Hand guides -->
+      <g class="mouth-guide-svg">
+        <text x="104" y="19" text-anchor="middle" class="guide-text guide-mouth">吹孔在这边</text>
+        <path d="M104 24 v7 M101 28 l3 3 l3 -3" fill="none" stroke="#9ba88d" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+
+      <g class="hand-guide-svg left-hand-guide">
+        <text x="390" y="15" text-anchor="middle" class="guide-text guide-hand-title">左手</text>
+        <text x="390" y="27" text-anchor="middle" class="guide-subtext">食指 · 中指 · 无名指</text>
+        <path d="M312 32 h156 M312 32 v4 M388 32 v4 M468 32 v4" fill="none" stroke="#d5dec7" stroke-width="1.1" stroke-linecap="round" />
+      </g>
+
+      <g class="hand-guide-svg right-hand-guide">
+        <text x="651" y="15" text-anchor="middle" class="guide-text guide-hand-title">右手</text>
+        <text x="651" y="27" text-anchor="middle" class="guide-subtext">食指 · 中指 · 无名指</text>
+        <path d="M574 32 h154 M574 32 v4 M650 32 v4 M728 32 v4" fill="none" stroke="#d5dec7" stroke-width="1.1" stroke-linecap="round" />
+      </g>
+
+      <!-- Flute Tube Body Layer -->
+      <g class="bamboo-flute-tube">
+        <rect x="28" y="48" width="802" height="34" rx="2" fill="url(#bamboo-cylinder)" />
+        <rect x="28" y="48" width="802" height="34" rx="2" fill="url(#bamboo-grain)" opacity="0.32" />
+        <line x1="28" y1="56" x2="830" y2="56" stroke="#fffce8" stroke-width="1.2" opacity="0.45" />
+        <line x1="28" y1="81" x2="830" y2="81" stroke="#754e1e" stroke-width="1.1" opacity="0.5" />
+
+        <!-- Bamboo Nodes -->
+        <g class="bamboo-node" transform="translate(265, 0)">
+          <rect x="-3" y="46" width="6" height="38" rx="2" fill="url(#bamboo-cylinder)" opacity="0.85" />
+          <line x1="0" y1="46" x2="0" y2="84" stroke="#784f22" stroke-width="1.4" />
+          <line x1="1" y1="46" x2="1" y2="84" stroke="#ffebc2" stroke-width="0.9" opacity="0.85" />
+        </g>
+        <g class="bamboo-node" transform="translate(428, 0)">
+          <rect x="-3" y="46" width="6" height="38" rx="2" fill="url(#bamboo-cylinder)" opacity="0.85" />
+          <line x1="0" y1="46" x2="0" y2="84" stroke="#784f22" stroke-width="1.4" />
+          <line x1="1" y1="46" x2="1" y2="84" stroke="#ffebc2" stroke-width="0.9" opacity="0.85" />
+        </g>
+        <g class="bamboo-node" transform="translate(524, 0)">
+          <rect x="-3" y="46" width="6" height="38" rx="2" fill="url(#bamboo-cylinder)" opacity="0.85" />
+          <line x1="0" y1="46" x2="0" y2="84" stroke="#784f22" stroke-width="1.4" />
+          <line x1="1" y1="46" x2="1" y2="84" stroke="#ffebc2" stroke-width="0.9" opacity="0.85" />
+        </g>
+        <g class="bamboo-node" transform="translate(688, 0)">
+          <rect x="-3" y="46" width="6" height="38" rx="2" fill="url(#bamboo-cylinder)" opacity="0.85" />
+          <line x1="0" y1="46" x2="0" y2="84" stroke="#784f22" stroke-width="1.4" />
+          <line x1="1" y1="46" x2="1" y2="84" stroke="#ffebc2" stroke-width="0.9" opacity="0.85" />
+        </g>
+
+        <!-- Silk Bindings -->
+        <rect x="54" y="46" width="16" height="38" rx="1.5" fill="url(#cord-pattern)" stroke="#1a100a" stroke-width="0.7" />
+        <rect x="142" y="46" width="12" height="38" rx="1.5" fill="url(#cord-pattern)" stroke="#1a100a" stroke-width="0.7" />
+        <rect x="226" y="46" width="14" height="38" rx="1.5" fill="url(#cord-pattern)" stroke="#1a100a" stroke-width="0.7" />
+        <rect x="508" y="46" width="14" height="38" rx="1.5" fill="url(#cord-pattern)" stroke="#1a100a" stroke-width="0.7" />
+        <rect x="762" y="46" width="14" height="38" rx="1.5" fill="url(#cord-pattern)" stroke="#1a100a" stroke-width="0.7" />
+        <rect x="802" y="46" width="16" height="38" rx="1.5" fill="url(#cord-pattern)" stroke="#1a100a" stroke-width="0.7" />
+
+        <!-- Head Cap & Brass Joint -->
+        <path d="M42 47.5 H35 A17 17 0 0 0 35 82.5 H42 Z" fill="url(#horn-gradient)" stroke="#181310" stroke-width="0.8" />
+        <line x1="38" y1="48" x2="38" y2="82" stroke="#ebd6b0" stroke-width="0.8" opacity="0.6" />
+        <rect x="42" y="47" width="10" height="36" fill="url(#brass-joint)" stroke="#80622d" stroke-width="0.7" />
+        <line x1="47" y1="47" x2="47" y2="83" stroke="#fff5d9" stroke-width="0.7" opacity="0.8" />
+
+        <!-- Tail Piece & Auxiliary holes -->
+        <rect x="820" y="47.5" width="10" height="35" rx="1.5" fill="url(#horn-gradient)" stroke="#181310" stroke-width="0.8" />
+        <ellipse cx="830" cy="65" rx="2.5" ry="11" fill="#0f0905" stroke="#4a3726" stroke-width="0.6" />
+        <ellipse cx="786" cy="65" rx="5" ry="4" fill="#18100a" stroke="#8c642e" stroke-width="0.8" />
+
+        <!-- Tassel -->
+        <g class="flute-tassel" transform="translate(830, 65)">
+          <path d="M0 0 C6 3, 10 10, 10 22 C10 32, 13 38, 14 46" fill="none" stroke="#a43d2c" stroke-width="1.2" stroke-linecap="round" />
+          <ellipse cx="10" cy="22" rx="2.2" ry="2.2" fill="#d2964d" />
+          <path d="M14 46 L12 60 M14 46 L14 62 M14 46 L16 60" stroke="#a43d2c" stroke-width="1.1" stroke-linecap="round" />
+        </g>
+      </g>
+
+      <!-- Embouchure / Blow Hole base rendering -->
+      <g class="flute-blow-hole-base" transform="translate(104, 65)">
+        <ellipse cx="0" cy="0" rx="12" ry="8.5" fill="url(#blow-bevel)" stroke="#9c7031" stroke-width="0.9" />
+        <ellipse cx="0" cy="0.4" rx="10" ry="6.8" fill="url(#hole-interior)" />
+        <path d="M-8 -2.5 A9 6 0 0 1 8 -2.5" fill="none" stroke="#fff0be" stroke-width="0.8" opacity="0.6" />
+        <ellipse class="breath-wave" cx="0" cy="0" rx="12" ry="8.5" fill="none" stroke="#e8984a" stroke-width="1.6" opacity="0" />
+      </g>
+
+      <!-- Membrane Hole -->
+      <g class="flute-membrane-hole" transform="translate(188, 65)">
+        <ellipse cx="0" cy="0" rx="10" ry="7" fill="#d6ba82" stroke="#875e29" stroke-width="0.8" />
+        <ellipse class="membrane-skin" cx="0" cy="0" rx="9" ry="6.2" fill="url(#membrane-grad)" stroke="#b59a68" stroke-width="0.6" />
+        <path d="M-6 -2 Q-2 -1.2 6 -2.4 M-7 0 Q-1 0.6 7 -0.2 M-6 2 Q-2 2.6 6 1.8" fill="none" stroke="#caa66b" stroke-width="0.45" opacity="0.75" />
+        <ellipse cx="0" cy="0" rx="7" ry="4" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.35" />
+      </g>
+
+      <!-- Under-Hole Drilled Rims -->
+      ${holePositions.map((p, i) => {
+        const cx = [312, 388, 468, 574, 650, 728][i];
+        return `<g transform="translate(${cx}, 65)">
+          <circle cx="0" cy="0" r="16" fill="#cda35e" stroke="#875b25" stroke-width="1.1" />
+          <circle cx="0" cy="0" r="13.5" fill="url(#hole-interior)" />
+          <path d="M-10 -7 A13 13 0 0 1 10 -7" fill="none" stroke="#ffebbe" stroke-width="0.8" opacity="0.5" />
+        </g>`;
+      }).join("")}
+
+      <!-- Bottom Number Labels -->
+      <g class="flute-hole-numbers">
+        ${[312, 388, 468, 574, 650, 728]
+          .map(
+            (x, i) =>
+              `<text x="${x}" y="106" text-anchor="middle" class="hole-num-text ${activeHoles[i] === 1 ? "num-covered" : ""}">${6 - i}</text>`,
+          )
+          .join("")}
+      </g>
+
+      <!-- Bottom Direction Axis Line -->
+      <g class="flute-axis-line">
+        <text x="36" y="129" text-anchor="start" class="axis-label">靠近吹孔</text>
+        <line x1="95" y1="126" x2="755" y2="126" stroke="#e3e7d8" stroke-width="1" stroke-dasharray="2 3" />
+        <text x="824" y="129" text-anchor="end" class="axis-label">靠近笛尾</text>
+      </g>
+    </svg>
+
+    <!-- Interactive HTML Buttons Layer -->
+    <button class="flute-blow-btn" onclick="window.listen()" data-action="blow-flute" aria-label="吹孔 · 点击试听竹笛参考音" title="点击吹孔试听">
+      </button>
+      ${activeHoles.map((hole, i) => {
+        const leftPercent = holePositions[i];
+        const holeNum = 6 - i;
+        const stateText = hole === 1 ? "按住" : hole === 0.5 ? "半孔" : "松开";
+        return `<button class="flute-hole-btn ${hole === 1 ? "covered" : hole === 0.5 ? "half" : "open"}"
+                        style="left: ${leftPercent}%"
+                        onclick="window.handleHoleToggle(${i})"
+                        data-action="toggle-hole"
+                        data-index="${i}"
+                        data-hole="${holeNum}"
+                        aria-label="第${holeNum}孔 · 当前${stateText} · 点击切换"
+                        title="第${holeNum}孔 · 点击切换指法">
+                  <span class="hole-disc"></span>
+                </button>`;
+      }).join("")}
   </div>`;
 }
 
 function fingeringPage() {
   return `${hero("先用手指认识竹笛", "六个音孔，<span>慢慢熟悉。</span>", "点击一个音，看手指怎么放。实心表示盖住，空心表示松开。")}
-    <section class="card explorer-card"><div class="explorer-notes">${NOTES.map((note) => `<button class="explorer-note ${state.note.id === note.id ? "active" : ""}" data-action="explore" data-note="${note.id}" aria-pressed="${state.note.id === note.id}">${noteMarkup(note)}<small>${note.solfege}</small></button>`).join("")}</div><div class="explorer-target"><h2>${state.note.title}</h2><button class="button button-outline" data-action="listen">${icon("volume")} 听参考音</button></div>${fluteDiagram(state.note)}<div class="breath-tip">${icon("leaf")}<p>${state.note.tip}</p></div><div class="explorer-footer"><p>当前：${state.key} 调 · 筒音作 5。孔号从笛尾向吹孔数；低音 5 和中音 5 指法相同，气流不同。</p><button class="button button-primary" data-action="practice-note">练练这个音 ${icon("arrow")}</button></div></section>
+    <section class="card explorer-card"><div class="explorer-notes">${NOTES.map((note) => `<button class="explorer-note ${state.note.id === note.id ? "active" : ""}" data-action="explore" data-note="${note.id}" aria-pressed="${state.note.id === note.id}">${noteMarkup(note)}<small>${note.solfege}</small></button>`).join("")}</div><div class="explorer-target"><div><h2>${state.note.title}</h2><p class="target-hz-badge">${state.note.low ? "低音 " : ""}${state.note.number} (${state.note.solfege}) · 音名 <strong>${pitchNameFor(state.note, state.key)}</strong> · 准确频率 <strong>${Math.round(frequencyFor(state.note, state.key, state.reference))} Hz</strong></p></div><button class="button button-outline listen-button" data-action="listen">${icon(state.demo ? "pause" : "volume")}<span>${state.demo ? "停止示范" : "听参考音"}</span></button></div>${fluteDiagram(state.note)}<div class="breath-tip">${icon("leaf")}<p>${state.note.tip}</p></div><div class="explorer-footer"><p>当前：${state.key} 调 · 筒音作 5。孔号从笛尾向吹孔数；低音 5 和中音 5 指法相同，气流不同。</p><button class="button button-primary" data-action="practice-note">练练这个音 ${icon("arrow")}</button></div></section>
     <div class="inline-note">${icon("help")} 半孔音 4 需要微调，不同笛子的指法可能略有差异。先从低音 5、6、7 和中音 1 练起就很好。</div>`;
 }
 
@@ -262,8 +457,9 @@ function stopDemo() {
   state.demo = false;
   engine.stopTones();
   document.querySelectorAll(".listen-button").forEach((el) => {
-    el.innerHTML = `${icon("volume")}<span>听听这个音</span>`;
+    el.innerHTML = `${icon("volume")}<span>${state.page === "fingering" ? "听参考音" : "听听这个音"}</span>`;
   });
+  document.querySelector(".flute-diagram")?.classList.remove("flute-playing");
   const play = document.querySelector(".score-play");
   if (play) play.innerHTML = icon("play");
 }
@@ -285,8 +481,9 @@ async function listen() {
     document.querySelectorAll(".listen-button").forEach((el) => {
       el.innerHTML = `${icon("pause")}<span>停止示范</span>`;
     });
+    document.querySelector(".flute-diagram")?.classList.add("flute-playing");
     toast(
-      `正在播放${state.note.low ? "低音 " : ""}${state.note.number} 的合成参考音`,
+      `正在播放 ${state.note.low ? "低音 " : ""}${state.note.number} (${pitchNameFor(state.note, state.key)}) · ${Math.round(frequencyFor(state.note, state.key, state.reference))} Hz 竹笛参考音`,
     );
     demoTimer = setTimeout(stopDemo, 1600);
   } catch (error) {
@@ -332,6 +529,7 @@ async function playSequence(sequence, interval = 1000, follow = false) {
       }
       const play = document.querySelector(".score-play");
       if (play) play.innerHTML = icon("pause");
+      document.querySelector(".flute-diagram")?.classList.add("flute-playing");
       demoTimer = setTimeout(step, interval);
     } catch (error) {
       stopDemo();
@@ -459,6 +657,7 @@ function handleAudio({ frequency, rms, referencePlaying }) {
     state.stableSince = 0;
     state.latestGood = 0;
     indicator.hidden = true;
+    document.querySelector(".flute-diagram")?.classList.remove("in-tune");
     setText("#actual-pitch", "—");
     setText(
       "#feedback-title",
@@ -490,6 +689,7 @@ function handleAudio({ frequency, rms, referencePlaying }) {
   indicator.hidden = false;
   indicator.style.left = `${50 + Math.max(-46, Math.min(46, (cents / 100) * 46))}%`;
   indicator.classList.toggle("in-tune", feedback.kind === "good");
+  document.querySelector(".flute-diagram")?.classList.toggle("in-tune", feedback.kind === "good");
   indicator.setAttribute("aria-label", `偏差 ${Math.round(cents)} 音分`);
   if (feedback.kind === "good") {
     const now = performance.now();
@@ -520,6 +720,7 @@ function handleAudio({ frequency, rms, referencePlaying }) {
 function selectNote(index, stopAudio = true) {
   if (stopAudio) stopDemo();
   state.index = index;
+  state.customHoles = null;
   state.note = NOTES.find((n) => n.id === state.lesson.sequence[index]);
   state.stableSince = 0;
   state.latestGood = 0;
@@ -580,6 +781,37 @@ function showDialog(type) {
   modal.showModal();
 }
 
+
+window.handleHoleToggle = handleHoleToggle;
+window.listen = listen;
+function handleHoleToggle(holeIndex) {
+  if (!Number.isInteger(holeIndex) || holeIndex < 0 || holeIndex >= 6) return;
+  if (state.page === "fingering") {
+    stopDemo();
+    const currentHoles = [...(state.customHoles || state.note.holes)];
+    if (holeIndex === 0) {
+      currentHoles[0] = currentHoles[0] === 1 ? 0.5 : currentHoles[0] === 0.5 ? 0 : 1;
+    } else {
+      currentHoles[holeIndex] = currentHoles[holeIndex] === 1 ? 0 : 1;
+    }
+    const matched = noteForHoles(currentHoles, state.note.overblow);
+    if (matched) {
+      state.customHoles = null;
+      state.note = matched;
+      render();
+      engine.tone(frequencyFor(matched, state.key, state.reference), 1.0);
+      toast(`切换指法：${matched.low ? "低音 " : ""}${matched.number} (${matched.solfege}) · ${pitchNameFor(matched, state.key)} · ${Math.round(frequencyFor(matched, state.key, state.reference))} Hz`);
+    } else {
+      state.customHoles = currentHoles;
+      render();
+      toast("特殊按孔组合 · 点击上方音符可切回标准指法");
+    }
+  } else {
+    engine.tone(frequencyFor(state.note, state.key, state.reference), 0.6);
+    toast(`第 ${6 - holeIndex} 孔 · 当前${state.note.holes[holeIndex] === 1 ? "盖严" : state.note.holes[holeIndex] === 0.5 ? "半孔" : "松开"}`);
+  }
+}
+
 app.addEventListener("click", (event) => {
   const link = event.target.closest('a[href^="#"]');
   if (link) {
@@ -587,20 +819,51 @@ app.addEventListener("click", (event) => {
     navigate(link.hash.slice(1));
     return;
   }
-  const button = event.target.closest("[data-action]");
-  if (!button) return;
-  const action = button.dataset.action;
+  let button = event.target.closest("[data-action]");
+  if (!button) {
+    const svg = event.target.closest("svg.flute-svg");
+    if (svg && typeof svg.createSVGPoint === "function") {
+      const pt = svg.createSVGPoint();
+      pt.x = event.clientX;
+      pt.y = event.clientY;
+      const ctm = svg.getScreenCTM();
+      if (ctm) {
+        const svgPt = pt.matrixTransform(ctm.inverse());
+        // Blow hole at (104, 65)
+        if (Math.hypot(svgPt.x - 104, svgPt.y - 65) <= 25) {
+          listen();
+          return;
+        }
+        // Holes 6..1 at [312, 388, 468, 574, 650, 728], y = 65
+        const holeCenters = [312, 388, 468, 574, 650, 728];
+        for (let i = 0; i < 6; i++) {
+          if (Math.hypot(svgPt.x - holeCenters[i], svgPt.y - 65) <= 24) {
+            handleHoleToggle(i);
+            return;
+          }
+        }
+      }
+    }
+    return;
+  }
+  const action = button.getAttribute("data-action") || button.dataset?.action;
   if (["practice", "notation", "fingering"].includes(action)) navigate(action);
   else if (action === "settings" || action === "help") showDialog(action);
   else if (action === "close") document.querySelector("#modal").close();
-  else if (action === "listen") listen();
+  else if (action === "listen" || action === "blow-flute") listen();
+  else if (action === "toggle-hole") {
+    const holeIndex = Number(button.getAttribute("data-index") ?? button.dataset?.index);
+    handleHoleToggle(holeIndex);
+  }
   else if (action === "mic") startMic();
   else if (action === "lesson") chooseLesson(button.dataset.lesson);
   else if (action === "select-note") selectNote(Number(button.dataset.index));
   else if (action === "explore") {
     stopDemo();
-    state.note = NOTES.find((n) => n.id === button.dataset.note);
+    state.customHoles = null;
+    state.note = NOTES.find((n) => n.id === button.dataset.note) || NOTES[0];
     render();
+    engine.tone(frequencyFor(state.note, state.key, state.reference), 0.9);
   } else if (action === "practice-note") {
     const note = state.note;
     state.passed.clear();

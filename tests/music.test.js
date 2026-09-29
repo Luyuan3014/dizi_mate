@@ -8,6 +8,8 @@ import {
   centsBetween,
   describePitch,
   readSaved,
+  pitchNameFor,
+  noteForHoles,
 } from "../src/music.js";
 
 function signal(frequency, sampleRate = 48000, harmonics = false) {
@@ -176,4 +178,16 @@ test("cancelled microphone request releases a device that arrives late", async (
     if (originalCancel === undefined) delete globalThis.cancelAnimationFrame;
     else globalThis.cancelAnimationFrame = originalCancel;
   }
+});
+
+test("pitchNameFor and noteForHoles identify notes correctly", () => {
+  assert.equal(pitchNameFor(NOTES[0], "E"), "B4");
+  assert.equal(pitchNameFor(NOTES[3], "E"), "E5");
+  assert.equal(pitchNameFor(NOTES[7], "E"), "B5");
+  assert.equal(pitchNameFor(NOTES[0], "D"), "A4");
+  assert.equal(noteForHoles([1, 1, 1, 1, 1, 1])?.id, "low5");
+  assert.equal(noteForHoles([1, 1, 1, 1, 1, 1], true)?.id, "5");
+  assert.equal(noteForHoles([1, 1, 1, 0, 0, 0])?.id, "1");
+  assert.equal(noteForHoles([0.5, 0, 0, 0, 0, 0])?.id, "4");
+  assert.equal(noteForHoles([0, 0, 0, 0, 0, 0]), null);
 });
