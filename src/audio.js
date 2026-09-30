@@ -5,7 +5,7 @@ export function detectPitch(samples, sampleRate) {
   for (let i = 0; i < samples.length; i++) energy += samples[i] * samples[i];
   const rms = Math.sqrt(energy / samples.length);
   if (rms < 0.008) return { frequency: null, rms };
-  const minLag = Math.max(2, Math.floor(sampleRate / 2000));
+  const minLag = Math.max(2, Math.floor(sampleRate / 3200));
   const maxLag = Math.min(size - 1, Math.ceil(sampleRate / 180));
   const difference = new Float32Array(maxLag + 1);
   let cumulative = 0;
@@ -32,14 +32,36 @@ export function detectPitch(samples, sampleRate) {
   return { frequency: null, rms };
 }
 
+export class PitchSmoother {
+  constructor(size = 5) {
+    this.size = size;
+    this.values = [];
+  }
+  reset() { this.values = []; }
+  update(frequency) {
+    if (!Number.isFinite(frequency) || frequency <= 0) {
+      this.reset();
+      return null;
+    }
+    this.values.push(Math.log2(frequency));
+    if (this.values.length > this.size) this.values.shift();
+    const sorted = [...this.values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return 2 ** (sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2);
+  }
+}
+
 export class AudioEngine {
   context = null;
   stream = null;
   source = null;
-  frame = null;
+  sampleTimer = null;
   mutedUntil = 0;
   oscillators = new Set();
   requestId = 0;
+  smoother = new PitchSmoother(5);
+  clickWindows = [];
+  clicks = new Set();
 
   async ready() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -64,8 +86,15 @@ export class AudioEngine {
   }
 
   async tone(frequency, duration = 1.5) {
-    const context = await this.ready();
-    const now = context.currentTime;
+    const requestId = this.toneRequestId || 0;
+    await this.ready();
+    if (requestId !== (this.toneRequestId || 0)) return;
+    this.scheduleTone(frequency, duration);
+  }
+
+  scheduleTone(frequency, duration = 1.5, when = this.context.currentTime) {
+    const context = this.context;
+    const now = Math.max(context.currentTime, when);
     const oscillator = context.createOscillator();
     const wave = this.getFluteWave();
     if (wave) {
@@ -80,7 +109,8 @@ export class AudioEngine {
     const vibratoGain = context.createGain();
     vibrato.frequency.setValueAtTime(4.6, now);
     vibratoGain.gain.setValueAtTime(frequency * 0.0025, now);
-    vibrato.connect(oscillator.frequency);
+    vibrato.connect(vibratoGain);
+    vibratoGain.connect(oscillator.frequency);
 
     // Acoustic lowpass filter modeling bamboo body resonance
     const filter = context.createBiquadFilter();
@@ -107,7 +137,7 @@ export class AudioEngine {
 
     this.mutedUntil = Math.max(
       this.mutedUntil,
-      performance.now() + duration * 1000 + 400,
+      performance.now() + (now - context.currentTime + duration) * 1000 + 400,
     );
     this.oscillators.add(oscillator);
     this.oscillators.add(vibrato);
@@ -132,6 +162,7 @@ export class AudioEngine {
   }
 
   stopTones() {
+    this.toneRequestId = (this.toneRequestId || 0) + 1;
     this.oscillators.forEach((oscillator) => {
       try {
         oscillator.stop();
@@ -141,6 +172,33 @@ export class AudioEngine {
     });
     this.oscillators.clear();
     this.mutedUntil = performance.now() + 400;
+  }
+
+  click(when, accent) {
+    const context = this.context;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.frequency.setValueAtTime(accent ? 1400 : 1000, when);
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(accent ? 0.12 : 0.07, when + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.045);
+    oscillator.connect(gain).connect(context.destination);
+    this.clicks.add(oscillator);
+    this.clickWindows = this.clickWindows.filter(([, end]) => end > context.currentTime);
+    this.clickWindows.push([when, when + 0.12]);
+    oscillator.onended = () => {
+      this.clicks.delete(oscillator);
+      oscillator.disconnect();
+      gain.disconnect();
+    };
+    oscillator.start(when);
+    oscillator.stop(when + 0.05);
+  }
+
+  stopClicks() {
+    this.clicks.forEach((oscillator) => { try { oscillator.stop(); } catch {} });
+    this.clicks.clear();
+    this.clickWindows = [];
   }
 
   async start(onFrame, onEnded) {
@@ -169,24 +227,33 @@ export class AudioEngine {
       const analyser = this.context.createAnalyser();
       analyser.fftSize = 4096;
       this.source = this.context.createMediaStreamSource(stream);
-      this.source.connect(analyser);
+      this.highpass = this.context.createBiquadFilter();
+      this.highpass.type = "highpass";
+      this.highpass.frequency.value = 150;
+      // For Web Audio high/low-pass nodes Q is expressed in dB.
+      this.highpass.Q.value = 20 * Math.log10(Math.SQRT1_2);
+      this.source.connect(this.highpass);
+      this.highpass.connect(analyser);
       stream.getAudioTracks()[0].onended = onEnded;
       const samples = new Float32Array(analyser.fftSize);
-      let last = 0;
-      // ponytail: small YIN windows run on the main thread; use an AudioWorklet if real-device profiling shows dropped frames.
-      const tick = (now) => {
-        if (now - last >= 70) {
-          last = now;
-          analyser.getFloatTimeDomainData(samples);
-          onFrame(
-            now < this.mutedUntil
-              ? { frequency: null, rms: 0, referencePlaying: true }
-              : detectPitch(samples, this.context.sampleRate),
-          );
+      // Sampling is independent of repaint rate (occluded windows can throttle RAF).
+      const tick = () => {
+        if (requestId !== this.requestId) return;
+        const now = performance.now();
+        analyser.getFloatTimeDomainData(samples);
+        this.clickWindows = this.clickWindows.filter(([, end]) => end > this.context.currentTime);
+        const metronomeBeat = this.clickWindows.some(([start, end]) =>
+          this.context.currentTime >= start && this.context.currentTime < end);
+        if (now < this.mutedUntil || metronomeBeat) {
+          this.smoother.reset();
+          onFrame({ frequency: null, rms: 0, referencePlaying: now < this.mutedUntil, metronomeBeat });
+        } else {
+          const result = detectPitch(samples, this.context.sampleRate);
+          onFrame({ ...result, frequency: this.smoother.update(result.frequency) });
         }
-        this.frame = requestAnimationFrame(tick);
+        if (requestId === this.requestId) this.sampleTimer = setTimeout(tick, 70);
       };
-      this.frame = requestAnimationFrame(tick);
+      this.sampleTimer = setTimeout(tick, 70);
       return true;
     } catch (error) {
       this.stop();
@@ -196,12 +263,15 @@ export class AudioEngine {
 
   stop() {
     this.requestId++;
-    cancelAnimationFrame(this.frame);
+    clearTimeout(this.sampleTimer);
     this.stream?.getTracks().forEach((track) => {
       track.onended = null;
       track.stop();
     });
     this.source?.disconnect();
+    this.highpass?.disconnect();
+    this.highpass = null;
+    this.smoother.reset();
     this.source = null;
     this.stream = null;
   }

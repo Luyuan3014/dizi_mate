@@ -78,7 +78,57 @@ export const NOTES = [
     tip: "六孔全按，收小唇间气口、集中气流，吹出高八度的 sol。初学时可先跳过。",
     overblow: true,
   },
+  {
+    id: "6", number: "6", solfege: "la", offset: 9,
+    holes: [1, 1, 1, 1, 1, 0], overblow: true,
+    title: "第 1 孔打开，集中气流",
+    tip: "指法与低音 6 相同，打开第 1 孔。气口收小、气速加快，腹部平稳支持，吹出中音 6；不要靠鼓腮或猛吹提高音高。",
+  },
+  {
+    id: "7", number: "7", solfege: "si", offset: 11,
+    holes: [1, 1, 1, 1, 0, 0], overblow: true,
+    title: "第 1、2 孔打开，保持急吹",
+    tip: "指法与低音 7 相同，打开第 1、2 孔。保持细而集中的气束和稳定支撑，不要在换指时突然松掉气息。",
+  },
+  {
+    id: "high1", number: "1", solfege: "do", offset: 12, high: true,
+    holes: [1, 1, 1, 0, 0, 0], overblow: true,
+    title: "左手三孔盖严，急吹高音 do",
+    tip: "与中音 1 同指法，右手三孔全开。缩小风门、适度加快气流，稳定地超吹到高八度；喉咙放松，避免挤压。",
+  },
+  {
+    id: "high2", number: "2", solfege: "re", offset: 14, high: true,
+    holes: [1, 1, 0, 0, 0, 0], overblow: true,
+    title: "只按第 6、5 孔，急吹高音 re",
+    tip: "与中音 2 同指法。高音 1 的集中气束不要断，轻抬左手无名指；气流细、快而稳，注意第 6、5 孔不漏气。",
+  },
+  {
+    id: "high3", number: "3", solfege: "mi", offset: 16, high: true,
+    holes: [1, 0, 0, 0, 0, 0], overblow: true,
+    title: "只按第 6 孔，急吹高音 mi",
+    tip: "与中音 3 同指法，仅左手食指盖住第 6 孔。气口更集中，腹部维持均匀支撑；若声音发尖，略放松气速并微调吹角。",
+  },
+  {
+    id: "high4", number: "4", solfege: "fa", offset: 17, high: true,
+    holes: [0, 1, 1, 1, 1, 0], overblow: true,
+    title: "打开第 6、1 孔，叉口急吹",
+    tip: "常用叉口指法：打开第 6、1 孔，盖严第 5、4、3、2 孔。用细而快的气束急吹，配合吹角校准音高。高音叉口对笛子开孔与气息较敏感。",
+  },
+  {
+    id: "high5", number: "5", solfege: "sol", offset: 19, high: true,
+    holes: [0, 1, 1, 1, 1, 1], overblow: true,
+    title: "打开第 6 孔，其余五孔盖严",
+    tip: "用第 6 孔作泛音泄孔，其余五孔盖严。风门小、气速快，气息持续支持，急吹高音 5；先听参考音，避免落回中音 5。",
+  },
+  {
+    id: "high6", number: "6", solfege: "la", offset: 21, high: true,
+    holes: [1, 1, 0, 1, 1, 0], overblow: true,
+    title: "打开第 4、1 孔，叉口急吹",
+    tip: "常用叉口指法：第 6、5、3、2 孔盖严，第 4、1 孔打开。用很细、很集中的快速气束，保持腹部支撑。不同竹笛可能需要替代指法与吹角微调，不必强求大音量。",
+  },
 ];
+
+export const noteLabel = (note) => `${note.low ? "低音" : note.high ? "高音" : "中音"} ${note.number}`;
 
 export const LESSONS = [
   {
@@ -209,13 +259,14 @@ export function pitchNameFor(note, key = "E") {
   return name + octave;
 }
 
-export function noteForHoles(holes, preferOverblow = false) {
+export function noteForHoles(holes, preferOverblow = false, preferHigh = false) {
   if (!Array.isArray(holes) || holes.length !== 6) return null;
   const matches = NOTES.filter((n) =>
     n.holes.every((h, i) => Math.abs(h - (holes[i] ?? 0)) < 0.2),
   );
   if (!matches.length) return null;
   if (matches.length === 1) return matches[0];
+  if (preferHigh && matches.some((note) => note.high)) return matches.find((note) => note.high);
   return preferOverblow
     ? matches.find((n) => n.overblow) || matches[0]
     : matches.find((n) => !n.overblow) || matches[0];
