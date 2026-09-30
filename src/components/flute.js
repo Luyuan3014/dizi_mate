@@ -198,3 +198,37 @@ export function fluteDiagram(note, state = {}) {
       }).join("")}
   </div>`;
 }
+
+export function getFluteClickTarget(event) {
+  const button = event.target.closest("[data-action]");
+  if (button) {
+    const action = button.getAttribute("data-action");
+    if (action === "blow-flute" || action === "listen") {
+      return { type: "blow" };
+    }
+    if (action === "toggle-hole") {
+      const index = Number(button.getAttribute("data-index") ?? button.dataset?.index);
+      return { type: "hole", index };
+    }
+  }
+  const svg = event.target.closest("svg.flute-svg");
+  if (svg && typeof svg.createSVGPoint === "function") {
+    const pt = svg.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    const ctm = svg.getScreenCTM();
+    if (ctm) {
+      const svgPt = pt.matrixTransform(ctm.inverse());
+      if (Math.hypot(svgPt.x - 104, svgPt.y - 65) <= 25) {
+        return { type: "blow" };
+      }
+      const holeCenters = [312, 388, 468, 574, 650, 728];
+      for (let i = 0; i < 6; i++) {
+        if (Math.hypot(svgPt.x - holeCenters[i], svgPt.y - 65) <= 24) {
+          return { type: "hole", index: i };
+        }
+      }
+    }
+  }
+  return null;
+}
