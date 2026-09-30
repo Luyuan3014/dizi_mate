@@ -1,7 +1,13 @@
-import { metronomeView } from "../components/metronome.js";
+import {
+  metronomeView,
+  updateMetronomeUI,
+  onMetronomeBeat,
+  handleMetronomePresetClick,
+} from "../components/metronome.js";
 import {
   NOTES,
   LESSONS,
+  SONGS,
   frequencyFor,
   pitchNameFor,
   noteLabel,
@@ -30,7 +36,11 @@ export function practicePage(state, stats) {
         ${fluteDiagram(state.note, state)}
         <div class="fingering-caption"><span><i class="legend-hole closed"></i>按住（润玉指触）</span><span><i class="legend-hole"></i>松开（通透内膛）</span>${state.note.holes.includes(0.5) ? '<span><i class="legend-hole half"></i>半孔</span>' : ""}<span class="caption-tip">💡 点击吹孔试听，点击音孔可试按</span><button data-action="fingering">查看全部指法 ${icon("arrow")}</button></div>
         <div class="breath-tip"><span class="tip-icon">${icon("leaf")}</span><div><strong>${state.note.overblow ? "试着集中气流" : "给你一个小提示"}</strong><p>${state.note.tip}</p></div></div>
-        <div class="score-strip"><div class="score-label"><span>${state.lesson.id === "song" ? "两只老虎 · 开头两句" : "这次练习的音"}</span><small>${state.lesson.id === "song" ? "一个数字，就是一拍" : "点击数字，看看指法"}</small></div><div class="score-notes">${state.lesson.sequence.map((id, index) => `<button class="score-note ${index === state.index ? "current" : ""} ${state.passed.has(`${state.lesson.id}:${index}:${id}`) ? "passed" : ""}" data-action="select-note" data-index="${index}" aria-label="练习第 ${index + 1} 个音 ${noteLabel(NOTES.find((n) => n.id === id))}" ${index === state.index ? 'aria-current="step"' : ""}>${noteMarkup(NOTES.find((n) => n.id === id))}<span>${state.lesson.id === "song" ? ["两", "只", "老", "虎", "两", "只", "老", "虎"][index] : NOTES.find((n) => n.id === id).solfege}</span></button>`).join("")}</div><button class="score-play" data-action="demo" aria-label="节拍器同步打拍示范" title="节拍器同步打拍示范">${icon(state.demo ? "pause" : "play")}</button></div>
+        <div class="score-strip"><div class="score-label"><span>${state.lesson.name || "这次练习的音"}</span><small>${state.lesson.sequence.length > 3 ? "一个数字，就是一拍" : "点击数字，看看指法"}</small></div><div class="score-notes">${state.lesson.sequence.map((id, index) => {
+          const noteObj = NOTES.find((n) => n.id === id);
+          const lyric = state.lesson.lyrics?.[index] || noteObj?.solfege || id;
+          return `<button class="score-note ${index === state.index ? "current" : ""} ${state.passed.has(`${state.lesson.id}:${index}:${id}`) ? "passed" : ""}" data-action="select-note" data-index="${index}" aria-label="练习第 ${index + 1} 个音 ${noteLabel(noteObj)}" ${index === state.index ? 'aria-current="step"' : ""}>${noteMarkup(noteObj)}<span>${lyric}</span></button>`;
+        }).join("")}</div><button class="score-play" data-action="demo" aria-label="节拍器同步打拍示范" title="节拍器同步打拍示范">${icon(state.demo ? "pause" : "play")}</button></div>
         <div class="practice-card-footer"><span>${icon("headphone")} 参考音为合成音，帮你找到音高</span><button data-action="next" id="practice-next-btn">${state.index < state.lesson.sequence.length - 1 ? "下一个音" : LESSONS.indexOf(state.lesson) < 2 ? "下一小步" : "再练一次"} ${icon("arrow")}</button></div>
       </section>
       <aside class="companion-column">
@@ -143,7 +153,22 @@ export class PracticePage {
   chooseLesson(lessonId) {
     this.context.audioService.stopMic();
     this.context.audioService.stopDemo();
-    const lesson = LESSONS.find((l) => l.id === lessonId) || LESSONS[0];
+    let lesson = LESSONS.find((l) => l.id === lessonId);
+    if (!lesson) {
+      const song = SONGS.find((s) => s.id === lessonId);
+      if (song) {
+        lesson = {
+          id: song.id,
+          name: song.title,
+          subtitle: song.subtitle,
+          sequence: song.sequence,
+          lyrics: song.lyrics,
+          instruction: song.tip,
+          stage: "曲谱练习",
+        };
+      }
+    }
+    if (!lesson) lesson = LESSONS[0];
     const note = NOTES.find((n) => n.id === lesson.sequence[0]);
 
     this.context.store.setState({
@@ -322,17 +347,7 @@ export class PracticePage {
 
   updateMetronomeUI() {
     if (!this.container) return;
-    const m = this.context.store.getState().metronome;
-    this.setText(
-      this.metroSummary,
-      `${m.bpm} BPM · ${m.beats}/4${m.running ? " · 运行中" : ""}`,
-    );
-    this.setText(this.metroToggle, m.running ? "停止" : "开始");
-    if (!m.running) {
-      this.container
-        .querySelectorAll("#metro-dots i")
-        .forEach((el) => el.classList.remove("active"));
-    }
+    updateMetronomeUI(this.container, this.context.store.getState().metronome);
   }
 
   updateDemoUI() {
@@ -451,9 +466,8 @@ export class PracticePage {
 
   onBeat(beat, index) {
     if (!this.container) return;
-    this.container
-      .querySelectorAll("#metro-dots i")
-      .forEach((el, i) => el.classList.toggle("active", i === beat));
+    const bpm = this.context.store.getState().metronome.bpm;
+    onMetronomeBeat(this.container, beat, index, bpm);
   }
 
   onStopDemo() {
@@ -461,6 +475,10 @@ export class PracticePage {
   }
 
   handleClick(event) {
+    if (handleMetronomePresetClick(event, this.context)) {
+      return;
+    }
+
     const fluteTarget = getFluteClickTarget(event);
     if (fluteTarget) {
       if (fluteTarget.type === "blow") {

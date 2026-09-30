@@ -68,9 +68,40 @@
 
 .long-tone-entry { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; padding: 20px 24px; background: #edf1e5; border-radius: 15px; font-size: 13px; }
 .song-content .button { margin: 8px 8px 0 0; }
-.song-preview { display: flex; flex-wrap: wrap; gap: 9px; letter-spacing: 0; }
-.song-preview span { padding: 3px 7px; border-radius: 7px; }
-.song-preview span.current { background: #dbe9cd; color: #345a31; }
+.song-preview { display: flex; flex-wrap: wrap; gap: 9px; letter-spacing: 0; align-items: center; }
+.song-preview span { padding: 4px 8px; border-radius: 7px; transition: background 0.15s, color 0.15s; }
+.song-preview span.current { background: #527943; color: white; box-shadow: 0 2px 8px rgba(82, 121, 67, 0.35); }
+.song-preview ruby { display: inline-flex; flex-direction: column; align-items: center; }
+.song-preview rt { font-size: 11px; color: #7d8f70; font-weight: 400; margin-top: 2px; }
+.song-preview span.current rt { color: #e5f0dc; }
+
+/* Songs view enhancements */
+.song-tags-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.song-difficulty-badge, .song-meta-badge { font-size: 11px; padding: 3px 9px; border-radius: 6px; background: #eaf1e1; color: #536f45; }
+.song-difficulty-badge { color: #9c7634; background: #fbf2dc; border: 1px solid #ebd8ae; }
+.song-actions-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.song-tip { font-size: 13px; color: #728467; background: #f5f7f0; padding: 10px 14px; border-radius: 8px; margin: 12px 0 0; }
+
+.songs-shelf { margin-top: 36px; }
+.shelf-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.shelf-header h3 { font-size: 20px; font-weight: 600; color: #3b5332; margin: 0 0 6px; }
+.shelf-header p { font-size: 13px; color: #7c8d71; margin: 0; }
+.shelf-count { font-size: 12px; color: #87997c; background: #eef3e7; padding: 4px 10px; border-radius: 12px; }
+
+.songs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.song-item-card { padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; border: 1px solid var(--line); }
+.song-item-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(72, 97, 62, 0.08); border-color: #adc197; }
+.song-item-card.active { border-color: #527943; background: #fafcf6; box-shadow: 0 0 0 2px rgba(82, 121, 67, 0.25); }
+.song-item-top { display: flex; align-items: center; justify-content: space-between; }
+.song-difficulty { font-size: 11px; color: #a27b3b; }
+.song-item-card h4 { font-size: 17px; font-weight: 600; margin: 0; color: #32492a; }
+.song-item-sub { font-size: 12px; color: #7d8e72; margin: 0; line-height: 1.6; }
+.song-item-preview { font-size: 16px; letter-spacing: 2px; color: #5c7949; background: #eff4e7; padding: 8px 12px; border-radius: 8px; font-family: monospace; }
+.song-item-meta { display: flex; gap: 12px; font-size: 11px; color: #829277; }
+.song-item-meta span { display: flex; align-items: center; gap: 4px; }
+.song-item-actions { margin-top: auto; padding-top: 8px; }
+.song-item-actions .button { width: 100%; justify-content: center; font-size: 12px; padding: 7px 12px; min-height: 32px; }
+
 .tuner-card, .long-tone-card { padding: 34px; }
 .tuner-dial { margin: 0 auto; max-width: 600px; text-align: center; padding: 18px 36px 26px; background: #f6f7f0; border-radius: 130px 130px 20px 20px; border: 1px solid #e1e6d8; transition: background .15s; }
 .tuner-dial.in-tune { background: #eaf3e2; border-color: #9eb78c; }
@@ -141,6 +172,7 @@ button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 1100px) {
   .page-heading:has(.metronome) { align-items: flex-start; flex-wrap: wrap; gap: 20px; }
   .heading-tools { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .songs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
   .sidebar nav { grid-template-columns: repeat(7, minmax(0,1fr)); }
@@ -165,4 +197,7 @@ button:disabled { opacity: .5; cursor: default; }
   .trace-heading small { width: 100%; margin-left: 0; }
   .challenge-actions .button { font-size: 12px; }
   .live-controls .button { font-size: 13px; }
+  .songs-grid { grid-template-columns: 1fr; }
+  .song-actions-row { flex-direction: column; }
+  .song-actions-row .button { width: 100%; justify-content: center; }
 }

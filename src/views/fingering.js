@@ -171,9 +171,10 @@ export class FingeringPage {
         customHoles: null,
         note: matched,
       });
+      this.context.audioService.engine.stopTones();
       this.context.audioService.engine.tone(
         frequencyFor(matched, state.key, state.reference),
-        1.0,
+        1.5,
       );
       this.context.shell.toast(
         `切换指法：${noteLabel(matched)} (${matched.solfege}) · ${pitchNameFor(matched, state.key)} · ${Math.round(frequencyFor(matched, state.key, state.reference))} Hz`,
@@ -205,6 +206,7 @@ export class FingeringPage {
 
     if (action === "explore") {
       this.context.audioService.stopDemo();
+      this.context.audioService.engine.stopTones();
       const note = NOTES.find((n) => n.id === button.dataset.note) || NOTES[0];
       const state = this.context.store.getState();
       this.context.store.setState({
@@ -213,7 +215,7 @@ export class FingeringPage {
       });
       this.context.audioService.engine.tone(
         frequencyFor(note, state.key, state.reference),
-        0.9,
+        1.5,
       );
     } else if (action === "practice-note") {
       const state = this.context.store.getState();
