@@ -1,0 +1,33 @@
+import { metronomeView } from "../components/metronome.js";
+import { NOTES, LESSONS, frequencyFor, pitchNameFor, noteLabel } from "../music.js";
+import { icon } from "../components/icons.js";
+import { hero, noteMarkup } from "../components/shared.js";
+import { fluteDiagram } from "../components/flute.js";
+export function practicePage(state, stats) {
+  return `${hero("你好，今天也一起吹笛子吧", "从第一个音，<span>慢慢来。</span>", "不用先懂乐理。看一眼指法，听一听，再试着吹出你的声音。", `<div class="heading-tools">${metronomeView(state)}<div class="daily-stats"><div><strong>${Math.floor(stats.seconds / 60)}<small>分钟</small></strong><span>今日练习</span></div><div class="stats-line"></div><div><strong>${stats.notes}<small>个音</small></strong><span>今日吹准</span></div><span class="stats-sprout">${icon("leaf")}</span></div></div>`)}
+    <div class="practice-grid">
+      <section class="practice-card card" aria-label="指法练习">
+        <div class="card-top"><span class="section-kicker"><span class="tiny-dot"></span> 今日的小练习</span><span class="level-tag">零基础 · 第 ${LESSONS.findIndex((lesson) => lesson.id === state.lesson.id) + 1} 步</span></div>
+        <div class="lesson-heading"><div><h2>${state.lesson.name}</h2><p>${state.lesson.instruction}</p></div><button class="round-help" data-action="help" aria-label="查看吹奏方法">${icon("help")}</button></div>
+        <div class="practice-tabs" aria-label="练习方式"><span class="selected">${icon("hand")} 看指法，跟着吹</span><button data-action="notation">${icon("book")} 简谱怎么看？${icon("chevron")}</button></div>
+        <div class="target-note-row"><div class="target-note">${noteMarkup(state.note)}<div><strong>${state.note.solfege} <span>${state.note.low ? "低音" : state.note.high ? "高音" : "中音"} · ${pitchNameFor(state.note, state.key)}</span></strong><p>${state.note.title}</p></div></div><button class="button button-outline listen-button" data-action="listen">${icon(state.demo ? "pause" : "volume")}<span>${state.demo ? "停止示范" : "听听这个音"}</span></button></div>
+        ${fluteDiagram(state.note, state)}
+        <div class="fingering-caption"><span><i class="legend-hole closed"></i>按住（润玉指触）</span><span><i class="legend-hole"></i>松开（通透内膛）</span>${state.note.holes.includes(0.5) ? '<span><i class="legend-hole half"></i>半孔</span>' : ""}<span class="caption-tip">💡 点击吹孔试听，点击音孔可试按</span><button data-action="fingering">查看全部指法 ${icon("arrow")}</button></div>
+        <div class="breath-tip"><span class="tip-icon">${icon("leaf")}</span><div><strong>${state.note.overblow ? "试着集中气流" : "给你一个小提示"}</strong><p>${state.note.tip}</p></div></div>
+        <div class="score-strip"><div class="score-label"><span>${state.lesson.id === "song" ? "两只老虎 · 开头两句" : "这次练习的音"}</span><small>${state.lesson.id === "song" ? "一个数字，就是一拍" : "点击数字，看看指法"}</small></div><div class="score-notes">${state.lesson.sequence.map((id, index) => `<button class="score-note ${index === state.index ? "current" : ""} ${state.passed.has(`${state.lesson.id}:${index}:${id}`) ? "passed" : ""}" data-action="select-note" data-index="${index}" aria-label="练习第 ${index + 1} 个音 ${noteLabel(NOTES.find((n) => n.id === id))}" ${index === state.index ? 'aria-current="step"' : ""}>${noteMarkup(NOTES.find((n) => n.id === id))}<span>${state.lesson.id === "song" ? ["两", "只", "老", "虎", "两", "只", "老", "虎"][index] : NOTES.find((n) => n.id === id).solfege}</span></button>`).join("")}</div><button class="score-play" data-action="demo" aria-label="节拍器同步打拍示范" title="节拍器同步打拍示范">${icon(state.demo ? "pause" : "play")}</button></div>
+        <div class="practice-card-footer"><span>${icon("headphone")} 参考音为合成音，帮你找到音高</span><button data-action="next">${state.index < state.lesson.sequence.length - 1 ? "下一个音" : LESSONS.indexOf(state.lesson) < 2 ? "下一小步" : "再练一次"} ${icon("arrow")}</button></div>
+      </section>
+      <aside class="companion-column">
+        <section class="companion-card" aria-label="实时音高陪练"><div class="companion-top"><span>${icon("sparkle")} 实时陪练</span><span class="mic-state" id="mic-state"><i></i>等待开启</span></div>
+          <div class="listening-orb" id="listening-orb"><div class="orb-ring"></div><div class="orb-ring second"></div><span>${icon("mic")}</span><i class="orb-spark spark-one"></i><i class="orb-spark spark-two"></i></div>
+          <h2 id="feedback-title" aria-live="polite" aria-atomic="true">我在这里，听你吹奏</h2><p class="feedback-copy" id="feedback-copy">不怕吹错，每一声都是进步。</p>
+          <div class="waveform" id="waveform" aria-hidden="true">${Array.from({ length: 35 }, (_, i) => `<i style="--wave:${8 + Math.sin(i * 1.1) ** 2 * (13 + Math.sin(i / 6) ** 2 * 21)}px;--delay:${i * -0.075}s"></i>`).join("")}</div>
+          <div class="pitch-panel"><div class="pitch-values"><span>当前音高 <strong id="actual-pitch">—</strong></span><span>目标 <strong id="target-pitch">${noteLabel(state.note)} (${pitchNameFor(state.note, state.key)}) · ${Math.round(frequencyFor(state.note, state.key, state.reference))} Hz</strong></span></div><div class="pitch-scale"><span class="pitch-safe-zone" style="left:${50 - state.tolerance * 0.46}%;width:${state.tolerance * 0.92}%"></span><i id="pitch-indicator" hidden></i><span class="pitch-center"></span></div><div class="pitch-scale-labels"><span>偏低</span><span>刚刚好</span><span>偏高</span></div></div>
+          <button class="button mic-button" id="mic-button" data-action="mic">${icon("mic")} 开启麦克风，试着吹</button><div class="privacy-note">${icon("shield")} 声音只在本机处理，不录音、不上传</div>
+          <div class="live-progress" id="live-progress"></div>
+        </section>
+        <button class="small-help-card" data-action="help"><span class="help-card-icon">${icon("help")}</span><span><strong>怎么还吹不响？</strong><small>先别急，试试这 3 个小动作</small></span>${icon("arrow")}</button>
+      </aside>
+    </div>
+    <div class="long-tone-entry"><span>把一个音吹稳，再走向下一段旋律。</span><button class="button button-outline" data-action="long-tone">进入长音练习 · 3 / 5 / 8 秒挑战 ${icon("arrow")}</button></div><section class="journey-section"><div class="section-heading"><h2>你的入门小路<span>一步一步，就会了</span></h2><span>跟着自己的节奏来 ${icon("leaf")}</span></div><div class="journey-grid">${LESSONS.map((lesson, index) => `<button class="journey-card ${state.lesson.id === lesson.id ? "current" : ""}" data-action="lesson" data-lesson="${lesson.id}"><span class="journey-illustration illustration-${index}">${index === 0 ? "<i></i><i></i><i></i><i></i><i></i>" : index === 1 ? "<b>5</b><b>6</b><b>7</b>" : icon("music")}</span><span class="journey-content"><span class="journey-eyebrow">STEP 0${index + 1}${state.lesson.id === lesson.id ? "<em>正在练习</em>" : ""}</span><strong>${lesson.name}</strong><small>${lesson.subtitle}</small><span class="journey-duration">${icon("clock")} ${lesson.duration}</span></span>${icon("chevron")}</button>`).join("")}</div></section>`;
+}

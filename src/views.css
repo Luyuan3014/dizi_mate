@@ -1,0 +1,122 @@
+/* Shared tools and the expanded instrument range. */
+.notation.high-note .note-dot { top: -9px; bottom: auto; }
+.explorer-notes { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); row-gap: 22px; }
+.explorer-note { padding-top: 23px; }
+.heading-tools { display: flex; flex-direction: column; align-items: flex-end; gap: 22px; }
+.metronome { border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; background: #fffef9; flex-shrink: 0; min-width: 260px; }
+.metronome summary { display: flex; gap: 9px; align-items: center; cursor: pointer; font-size: 13px; color: #48613e; list-style: none; }
+.metronome summary:after { content: "⌄"; margin-left: auto; }
+.metronome summary::-webkit-details-marker { display: none; }
+.metronome[open] summary:after { content: "⌃"; }
+.metronome summary span { font-size: 11px; color: #748168; }
+.metro-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 17px; align-items: center; }
+.metro-controls label { font-size: 12px; display: flex; gap: 5px; align-items: center; }
+.metro-controls input, .metro-controls select, .long-tone-toolbar select { border: 1px solid #ced7c2; border-radius: 7px; background: #fff; padding: 7px; color: #405937; font: inherit; }
+.metro-controls input { width: 64px; }
+.metro-controls .button { padding: 7px 12px; min-height: 32px; font-size: 12px; }
+.metro-beats { display: flex; gap: 12px; margin-top: 15px; }
+.metro-beats i { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #f0f2e9; color: #768369; font-size: 12px; font-style: normal; }
+.metro-beats i.accent { border: 1px solid #b69768; }
+.metro-beats i.active { background: #527943; color: white; }
+.metro-beats i.active.accent { background: #a67d42; }
+.metronome > p { font-size: 11px; margin: 9px 0 0; color: #748168; }
+.long-tone-entry { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; padding: 20px 24px; background: #edf1e5; border-radius: 15px; font-size: 13px; }
+.song-content .button { margin: 8px 8px 0 0; }
+.song-preview { display: flex; flex-wrap: wrap; gap: 9px; letter-spacing: 0; }
+.song-preview span { padding: 3px 7px; border-radius: 7px; }
+.song-preview span.current { background: #dbe9cd; color: #345a31; }
+.tuner-card, .long-tone-card { padding: 34px; }
+.tuner-dial { margin: 0 auto; max-width: 600px; text-align: center; padding: 18px 36px 26px; background: #f6f7f0; border-radius: 130px 130px 20px 20px; border: 1px solid #e1e6d8; transition: background .15s; }
+.tuner-dial.in-tune { background: #eaf3e2; border-color: #9eb78c; }
+.tuner-note { font-size: 104px; line-height: 1.3; min-height: 146px; padding-top: 18px; color: #42623b; }
+.tuner-note .note-dot { width: 7px; height: 7px; left: calc(50% - 3.5px); }
+.tuner-dial > strong { font-size: 20px; }
+.tuner-readings { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin: 18px 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.tuner-scale { position: relative; height: 20px; background: #e7e6db; border-radius: 20px; margin: 23px 0 8px; }
+.tuner-scale .pitch-safe-zone { top: 0; bottom: 0; height: 100%; }
+#tuner-needle { position: absolute; top: -6px; bottom: -6px; width: 3px; background: #af8350; transition: left 70ms linear; border-radius: 3px; }
+.in-tune #tuner-needle { background: #456c38; }
+#tuner-target { color: #758069; font-size: 12px; margin: 15px 0 0; }
+.tuner-notes { display: grid; grid-template-columns: repeat(16, minmax(0,1fr)); gap: 6px; margin: 30px 0; }
+.tuner-notes > span { text-align: center; border-radius: 9px; padding: 16px 0; color: #88957a; }
+.tuner-notes > span.active { background: #e2eed7; color: #385e32; box-shadow: inset 0 0 0 1px #afc39e; }
+.tuner-fingering { text-align: center; min-height: 175px; }
+.tuner-fingering h3 { font-size: 16px; font-weight: 500; }
+.tuner-fingering p, .long-tip { font-size: 13px; line-height: 1.9; color: #748168; }
+.hole-row { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 24px 0 18px; }
+.hole-row > span { font-size: 11px; color: #7c876f; }
+.hole-row > div { text-align: center; display: grid; gap: 6px; }
+.hole-row i { display: block; width: 30px; height: 30px; border: 2px solid #759163; border-radius: 50%; }
+.hole-row i.closed { background: #527943; box-shadow: inset 0 0 0 3px #e5eddc; }
+.hole-row i.half { background: linear-gradient(90deg, #527943 50%, transparent 50%); }
+.hole-row small { color: #7c876f; font-size: 10px; }
+.hole-legend { display: flex; justify-content: center; gap: 20px; font-size: 11px; color: #758069; }
+.hole-legend span { display: flex; gap: 6px; align-items: center; }
+.live-controls { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.live-controls h3 { font-size: 17px; font-weight: 500; margin: 0; }
+.live-controls .mic-state { background: #edf3e7; color: #657a55; }
+.live-controls .mic-state.connected { color: #3d643a; }
+.live-controls p { color: #748168; font-size: 13px; line-height: 1.8; margin: 0; }
+.live-controls small { display: flex; align-items: center; gap: 7px; color: #88927d; font-size: 11px; }
+.live-controls small .icon { width: 14px; }
+.long-tone-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; }
+.long-tone-toolbar label { display: flex; align-items: center; gap: 12px; }
+.long-tone-toolbar > span { color: #748168; }
+.long-tip { text-align: center; }
+.challenge-milestones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 25px 0; }
+.challenge-milestones > div { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 15px; background: #f3f4ed; border: 1px solid #e4e8dc; border-radius: 12px; color: #8c9482; }
+.challenge-milestones b { font-size: 26px; font-weight: 500; }
+.challenge-milestones small { font-size: 11px; margin-left: 4px; }
+.challenge-milestones span { font-size: 13px; }
+.challenge-milestones .achieved { background: #e7efd9; border-color: #b0c599; color: #456139; }
+.challenge-milestones [data-medal="8"].achieved { background: #f4ebd4; border-color: #c9ac6d; color: #907033; }
+.hold-readout { display: flex; align-items: center; gap: 22px; justify-content: center; margin-top: 24px; }
+.hold-readout strong { font-size: 40px; font-variant-numeric: tabular-nums; color: #456139; font-weight: 500; }
+.hold-readout small { font-size: 13px; margin-left: 5px; }
+.hold-readout > span { color: #748168; font-size: 13px; }
+.hold-progress { background: #e8ecdf; border-radius: 5px; height: 5px; overflow: hidden; margin: 14px 0 26px; }
+.hold-progress span { display: block; height: 100%; background: #72955b; transition: width 70ms linear; }
+.trace-heading { display: flex; gap: 18px; align-items: center; font-size: 12px; color: #748168; }
+.trace-heading small { margin-left: auto; }
+.trace-key { display: inline-block; width: 16px; height: 3px; margin-right: 6px; vertical-align: middle; }
+.trace-key.pitch { background: #527943; }
+.trace-key.volume { background: #bb9353; }
+.breath-chart { display: block; width: 100%; min-height: 170px; margin: 18px 0; }
+.challenge-rule { font-size: 12px; color: #748168; line-height: 1.9; }
+.challenge-actions { display: flex; gap: 12px; margin-top: 20px; }
+button:disabled { opacity: .5; cursor: default; }
+.long-result { margin-top: 24px; background: #f0f4e8; padding: 24px; border: 1px solid #d6e2c7; border-radius: 14px; }
+.long-result h2 { font-size: 48px; font-weight: 500; color: #456139; margin: 10px 0; }
+.long-result h2 small { font-size: 14px; }
+.long-result p, .result-metrics { font-size: 13px; color: #617653; }
+.result-metrics { display: flex; flex-wrap: wrap; gap: 20px; margin: 18px 0; }
+.long-result > small { color: #7e8a71; font-size: 11px; line-height: 1.8; display: block; }
+.flute-hole-btn:focus-visible, .flute-blow-btn:focus-visible { outline: 2px solid #466b38; outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .page-heading:has(.metronome) { align-items: flex-start; flex-wrap: wrap; gap: 20px; }
+  .heading-tools { flex-direction: row; align-items: center; flex-wrap: wrap; }
+}
+@media (max-width: 760px) {
+  .sidebar nav { grid-template-columns: repeat(7, minmax(0,1fr)); }
+  .nav-link { font-size: 9px; white-space: nowrap; }
+  .heading-tools, .metronome { width: 100%; }
+  .metronome { min-width: 0; }
+  .explorer-notes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tuner-card, .long-tone-card { padding: 22px 16px; }
+  .tuner-dial { padding: 22px 14px; border-radius: 70px 70px 16px 16px; }
+  .tuner-note { font-size: 82px; min-height: 125px; }
+  .tuner-readings { gap: 8px 16px; font-size: 12px; }
+  .tuner-notes { grid-template-columns: repeat(8, minmax(0,1fr)); row-gap: 12px; }
+  .hole-row { gap: 10px; }
+  .hole-row i { width: 23px; height: 23px; }
+  .hole-row > span { font-size: 9px; }
+  .long-tone-entry { flex-direction: column; align-items: flex-start; padding: 18px; }
+  .long-tone-entry .button { font-size: 11px; }
+  .challenge-milestones > div { gap: 8px; padding: 12px 7px; }
+  .challenge-milestones b { font-size: 23px; }
+  .hold-readout { flex-direction: column; gap: 3px; }
+  .trace-heading { flex-wrap: wrap; gap: 10px; }
+  .trace-heading small { width: 100%; margin-left: 0; }
+  .challenge-actions .button { font-size: 12px; }
+  .live-controls .button { font-size: 13px; }
+}
