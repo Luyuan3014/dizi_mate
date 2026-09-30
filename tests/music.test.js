@@ -10,6 +10,7 @@ import {
   readSaved,
   pitchNameFor,
   noteForHoles,
+  SONGS,
 } from "../src/music.js";
 
 function signal(frequency, sampleRate = 48000, harmonics = false) {
@@ -190,4 +191,19 @@ test("pitchNameFor and noteForHoles identify notes correctly", () => {
   assert.equal(noteForHoles([1, 1, 1, 0, 0, 0])?.id, "1");
   assert.equal(noteForHoles([0.5, 0, 0, 0, 0, 0])?.id, "4");
   assert.equal(noteForHoles([0, 0, 0, 0, 0, 0]), null);
+});
+
+test("beginner SONGS collection defines valid notes, tempo, and sequence", () => {
+  assert.ok(SONGS.length >= 6);
+  for (const song of SONGS) {
+    assert.ok(song.id && song.title);
+    assert.ok(song.bpm >= 40 && song.bpm <= 180);
+    assert.ok(song.sequence.length > 0);
+    for (const noteId of song.sequence) {
+      assert.ok(
+        NOTES.some((n) => n.id === noteId),
+        `Note ${noteId} in ${song.id} must exist in NOTES`,
+      );
+    }
+  }
 });
