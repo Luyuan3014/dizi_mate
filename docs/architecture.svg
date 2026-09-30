@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 780" width="100%" height="100%" style="background:#f7f9f5; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#405638"/>
+      <stop offset="100%" stop-color="#56734c"/>
+    </linearGradient>
+    <linearGradient id="shellGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eaf1e5"/>
+      <stop offset="100%" stop-color="#dde8d7"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fafbf9"/>
+    </linearGradient>
+    <linearGradient id="audioGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5ede0"/>
+      <stop offset="100%" stop-color="#ebdcc9"/>
+    </linearGradient>
+    <linearGradient id="baseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8ecf1"/>
+      <stop offset="100%" stop-color="#dce3ec"/>
+    </linearGradient>
+    <filter id="dropShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#24301d" flood-opacity="0.06"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#527047"/>
+    </marker>
+    <marker id="arrowAudio" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#b07d3b"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#486581"/>
+    </marker>
+  </defs>
+
+  <!-- Title Banner -->
+  <rect x="36" y="24" width="1048" height="68" rx="14" fill="url(#headerGrad)" filter="url(#dropShadow)"/>
+  <text x="64" y="56" fill="#ffffff" font-size="20" font-weight="700" letter-spacing="0.5">笛伴 DiziMate · 模块化分层架构设计图</text>
+  <text x="64" y="76" fill="#d9e6d4" font-size="12">基于轻量组件化、生命周期规范 (mount/unmount/update) 与响应式单向数据流的高性能 Web 架构</text>
+  <rect x="946" y="44" width="118" height="28" rx="6" fill="#ffffff" fill-opacity="0.16"/>
+  <text x="1005" y="62" fill="#ffffff" font-size="11" font-weight="600" text-anchor="middle">v0.2.0 · 架构重构</text>
+
+  <!-- 1. Shell & Entry Layer -->
+  <g transform="translate(36, 110)">
+    <rect x="0" y="0" width="1048" height="96" rx="12" fill="url(#shellGrad)" stroke="#c7d8bf" stroke-width="1.2" filter="url(#dropShadow)"/>
+    <text x="24" y="26" fill="#304429" font-size="13" font-weight="700">【应用接入与外壳层】 Entry &amp; Persistent Shell Layer</text>
+
+    <!-- main.js card -->
+    <rect x="24" y="38" width="220" height="46" rx="8" fill="#ffffff" stroke="#b8cbaf" stroke-width="1"/>
+    <text x="38" y="58" fill="#2d3d27" font-size="13" font-weight="700">src/main.js</text>
+    <text x="38" y="74" fill="#697b62" font-size="10.5">应用装配器 · 仅 102 行 · 协同调度</text>
+
+    <!-- shell.js card -->
+    <rect x="264" y="38" width="450" height="46" rx="8" fill="#ffffff" stroke="#b8cbaf" stroke-width="1"/>
+    <text x="278" y="58" fill="#2d3d27" font-size="13" font-weight="700">src/shell.js (AppShell)</text>
+    <text x="278" y="74" fill="#697b62" font-size="10.5">常驻单例布局 (Sidebar 侧栏 + Topbar 顶栏 + Dialog 弹窗 + Toast 通知 · 零重绘)</text>
+
+    <!-- container target -->
+    <rect x="734" y="38" width="290" height="46" rx="8" fill="#ffffff" stroke="#527047" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <text x="748" y="58" fill="#405638" font-size="12.5" font-weight="700">&lt;main id="main-content"&gt;</text>
+    <text x="748" y="74" fill="#697b62" font-size="10.5">挂载容器 · 路由切换仅更新此局部区域</text>
+  </g>
+
+  <!-- 2. Routing, State & Audio Coordinator Layer (Middle Split) -->
+
+  <!-- Left: Router & View Component Layer -->
+  <g transform="translate(36, 224)">
+    <rect x="0" y="0" width="670" height="300" rx="12" fill="#ffffff" stroke="#d5decb" stroke-width="1.2" filter="url(#dropShadow)"/>
+    <text x="24" y="28" fill="#304429" font-size="13" font-weight="700">【路由与视图组件层】 Router &amp; Lifecycle Page Components</text>
+
+    <!-- router.js -->
+    <rect x="24" y="42" width="622" height="42" rx="8" fill="#f4f7f1" stroke="#bdd0b4" stroke-width="1"/>
+    <text x="40" y="62" fill="#2d3d27" font-size="12.5" font-weight="700">src/router.js (Router)</text>
+    <text x="40" y="76" fill="#586b51" font-size="10.5">契约执行器：oldPage.unmount() ➔ container.innerHTML="" ➔ newPage.mount() ➔ hash 同步</text>
+
+    <!-- 7 Page Components Grid -->
+    <g transform="translate(24, 96)">
+      <!-- Row 1 -->
+      <g transform="translate(0, 0)">
+        <rect width="198" height="84" rx="8" fill="#fafbf9" stroke="#ccd9c4" stroke-width="1"/>
+        <text x="12" y="22" fill="#2d3d27" font-size="12" font-weight="700">PracticePage</text>
+        <text x="12" y="37" fill="#6b7e64" font-size="10">今日陪练 / 实时音高</text>
+        <rect x="12" y="46" width="174" height="28" rx="4" fill="#eef3ea"/>
+        <text x="18" y="64" fill="#445b3c" font-size="9.5">局部指针偏移 / 波形动态高度</text>
+      </g>
+
+      <g transform="translate(212, 0)">
+        <rect width="198" height="84" rx="8" fill="#fafbf9" stroke="#ccd9c4" stroke-width="1"/>
+        <text x="12" y="22" fill="#2d3d27" font-size="12" font-weight="700">FingeringPage</text>
+        <text x="12" y="37" fill="#6b7e64" font-size="10">指法小抄 / 探索 16 音</text>
+        <rect x="12" y="46" width="174" height="28" rx="4" fill="#eef3ea"/>
+        <text x="18" y="64" fill="#445b3c" font-size="9.5">试按音孔 / 实时竹笛图替换</text>
+      </g>
+
+      <g transform="translate(424, 0)">
+        <rect width="198" height="84" rx="8" fill="#fafbf9" stroke="#ccd9c4" stroke-width="1"/>
+        <text x="12" y="22" fill="#2d3d27" font-size="12" font-weight="700">TunerPage</text>
+        <text x="12" y="37" fill="#6b7e64" font-size="10">实时调音器</text>
+        <rect x="12" y="46" width="174" height="28" rx="4" fill="#eef3ea"/>
+        <text x="18" y="64" fill="#445b3c" font-size="9.5">最近音识别 / 表盘指针动画</text>
+      </g>
+
+      <!-- Row 2 -->
+      <g transform="translate(0, 94)">
+        <rect width="148" height="78" rx="8" fill="#fafbf9" stroke="#ccd9c4" stroke-width="1"/>
+        <text x="10" y="20" fill="#2d3d27" font-size="11.5" font-weight="700">LongTonePage</text>
+        <text x="10" y="34" fill="#6b7e64" font-size="9.5">长音 3/5/8 秒挑战</text>
+        <text x="10" y="52" fill="#445b3c" font-size="9">SVG 气息双轨走势</text>
+        <text x="10" y="66" fill="#445b3c" font-size="9">即时评级结算</text>
+      </g>
+
+      <g transform="translate(158, 94)">
+        <rect width="148" height="78" rx="8" fill="#fafbf9" stroke="#ccd9c4" stroke-width="1"/>
+        <text x="10" y="20" fill="#2d3d27" font-size="11.5" font-weight="700">SongsPage</text>
+        <text x="10" y="34" fill="#6b7e64" font-size="9.5">我的曲谱 · 两只老虎</text>
+        <text x="10" y="52" fill="#445b3c" font-size="9">节拍同步高亮打拍</text>
+        <text x="10" y="66" fill="#445b3c" font-size="9">逐音步进连贯练习</text>
+      </g>
+
+      <g transform="translate(316, 94)">
+        <rect width="148" height="78" rx="8" fill="#fafbf9" stroke="#ccd9c4" stroke-width="1"/>
+        <text x="10" y="20" fill="#2d3d27" font-size="11.5" font-weight="700">NotationPage</text>
+        <text x="10" y="34" fill="#6b7e64" font-size="9.5">简谱入门教程</text>
+        <text x="10" y="52" fill="#445b3c" font-size="9">数字/点/线/休止符</text>
+        <text x="10" y="66" fill="#445b3c" font-size="9">合成参考音示范</text>
+      </g>
+
+      <g transform="translate(474, 94)">
+        <rect width="148" height="78" rx="8" fill="#fafbf9" stroke="#ccd9c4" stroke-width="1"/>
+        <text x="10" y="20" fill="#2d3d27" font-size="11.5" font-weight="700">HistoryPage</text>
+        <text x="10" y="34" fill="#6b7e64" font-size="9.5">练习足迹档案</text>
+        <text x="10" y="52" fill="#445b3c" font-size="9">累计练习时间统计</text>
+        <text x="10" y="66" fill="#445b3c" font-size="9">吹准不同音符汇总</text>
+      </g>
+    </g>
+
+    <!-- Component Contract Tag -->
+    <rect x="24" y="270" width="622" height="20" rx="4" fill="#edf3e9"/>
+    <text x="335" y="284" fill="#405638" font-size="10.5" font-weight="600" text-anchor="middle">统一生命周期契约：mount(container, ctx)  |  unmount()  |  update(state, changedKeys)  |  onAudioFrame(data)</text>
+  </g>
+
+  <!-- Right: Reactive Store & Audio Pipeline -->
+  <g transform="translate(720, 224)">
+    <!-- Reactive Store Box -->
+    <rect x="0" y="0" width="364" height="136" rx="12" fill="#ffffff" stroke="#c0d1b9" stroke-width="1.2" filter="url(#dropShadow)"/>
+    <text x="20" y="26" fill="#304429" font-size="13" font-weight="700">【全局响应式状态】 src/store.js</text>
+
+    <rect x="18" y="38" width="328" height="86" rx="8" fill="#f7f9f5" stroke="#d5dfce"/>
+    <text x="30" y="56" fill="#304429" font-size="11" font-weight="700">createStore() 单向数据中心</text>
+    <text x="30" y="73" fill="#586b51" font-size="10.5">· 状态变更 diff 计算：changedKeys 细粒度分发</text>
+    <text x="30" y="89" fill="#586b51" font-size="10.5">· 独立持久化模块：saveSettings() ➔ LocalStorage</text>
+    <text x="30" y="105" fill="#586b51" font-size="10.5">· 今日数据计算：calculateTodayStats(sessions)</text>
+
+    <!-- Audio Service Box -->
+    <g transform="translate(0, 150)">
+      <rect x="0" y="0" width="364" height="150" rx="12" fill="url(#audioGrad)" stroke="#ddcaa8" stroke-width="1.2" filter="url(#dropShadow)"/>
+      <text x="20" y="26" fill="#694311" font-size="13" font-weight="700">【音频协同调度】 src/audio-service.js</text>
+
+      <rect x="18" y="38" width="328" height="98" rx="8" fill="#ffffff" stroke="#dec9a6"/>
+      <text x="30" y="56" fill="#694311" font-size="11" font-weight="700">AudioService 核心中枢</text>
+      <text x="30" y="72" fill="#805b2a" font-size="10.5">· 麦克风录制启停、权限中断恢复与世代计数器</text>
+      <text x="30" y="88" fill="#805b2a" font-size="10.5">· 示范音频 (listen / playSequence) 单音/多音合成</text>
+      <text x="30" y="104" fill="#805b2a" font-size="10.5">· 节拍器状态调度 (Metronome 序列节拍同步)</text>
+      <text x="30" y="120" fill="#805b2a" font-size="10.5">· 实时帧流精准注入活跃页面：onAudioFrame / onBeat</text>
+    </g>
+  </g>
+
+  <!-- 3. Core Engine & Hardware Foundation Layer -->
+  <g transform="translate(36, 544)">
+    <rect x="0" y="0" width="1048" height="110" rx="12" fill="url(#baseGrad)" stroke="#cbd5e1" stroke-width="1.2" filter="url(#dropShadow)"/>
+    <text x="24" y="26" fill="#2d3d52" font-size="13" font-weight="700">【核心算法与基础底座】 Core DSP Engines, Theory &amp; Hardware</text>
+
+    <!-- DSP modules -->
+    <g transform="translate(24, 38)">
+      <rect width="236" height="58" rx="8" fill="#ffffff" stroke="#c0cee0"/>
+      <text x="14" y="22" fill="#243346" font-size="11.5" font-weight="700">src/audio.js</text>
+      <text x="14" y="37" fill="#556980" font-size="10">AudioEngine · 150Hz 滤波器</text>
+      <text x="14" y="50" fill="#556980" font-size="10">自相关音高检测 (detectPitch)</text>
+    </g>
+
+    <g transform="translate(276, 38)">
+      <rect width="236" height="58" rx="8" fill="#ffffff" stroke="#c0cee0"/>
+      <text x="14" y="22" fill="#243346" font-size="11.5" font-weight="700">src/practice.js</text>
+      <text x="14" y="37" fill="#556980" font-size="10">ConfidenceBucket 置信度时间积分</text>
+      <text x="14" y="50" fill="#556980" font-size="10">LongToneChallenge 长音稳定性模型</text>
+    </g>
+
+    <g transform="translate(528, 38)">
+      <rect width="236" height="58" rx="8" fill="#ffffff" stroke="#c0cee0"/>
+      <text x="14" y="22" fill="#243346" font-size="11.5" font-weight="700">src/music.js</text>
+      <text x="14" y="37" fill="#556980" font-size="10">C/D/E/F/G 五调性竹笛映射</text>
+      <text x="14" y="50" fill="#556980" font-size="10">筒音作 5 指法表 · 16 音频率算法</text>
+    </g>
+
+    <g transform="translate(780, 38)">
+      <rect width="244" height="58" rx="8" fill="#ffffff" stroke="#c0cee0"/>
+      <text x="14" y="22" fill="#243346" font-size="11.5" font-weight="700">浏览器底层硬件能力</text>
+      <text x="14" y="37" fill="#556980" font-size="10">Web Audio API · AnalyserNode</text>
+      <text x="14" y="50" fill="#556980" font-size="10">MediaDevices (麦克风) · LocalStorage</text>
+    </g>
+  </g>
+
+  <!-- Flow Arrows connecting layers -->
+  <!-- 1. main to shell & router & store & audio -->
+  <path d="M 134,194 L 134,220" fill="none" stroke="#527047" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <path d="M 244,162 L 720,270" fill="none" stroke="#527047" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <path d="M 244,175 L 720,410" fill="none" stroke="#b07d3b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrowAudio)"/>
+
+  <!-- 2. AudioService streams to Active Page in View layer -->
+  <path d="M 720,440 L 680,440" fill="none" stroke="#b07d3b" stroke-width="2" marker-end="url(#arrowAudio)"/>
+  <rect x="672" y="426" width="90" height="18" rx="3" fill="#fcf6ec" stroke="#dec9a6"/>
+  <text x="717" y="439" fill="#915e19" font-size="9" font-weight="700" text-anchor="middle">实时音频帧流</text>
+
+  <!-- 3. Store changedKeys to Page layer -->
+  <path d="M 720,290 L 680,290" fill="none" stroke="#527047" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="668" y="276" width="96" height="18" rx="3" fill="#f0f6ee" stroke="#bcd0b4"/>
+  <text x="716" y="289" fill="#304429" font-size="9" font-weight="700" text-anchor="middle">changedKeys 增量</text>
+
+  <!-- 4. View layer to DSP Base layer -->
+  <path d="M 370,524 L 370,544" fill="none" stroke="#486581" stroke-width="1.8" marker-end="url(#arrowBlue)"/>
+  <path d="M 880,524 L 880,544" fill="none" stroke="#486581" stroke-width="1.8" marker-end="url(#arrowBlue)"/>
+
+  <!-- Footer Stats -->
+  <g transform="translate(36, 674)">
+    <rect x="0" y="0" width="1048" height="66" rx="10" fill="#ffffff" stroke="#e0e6dc" filter="url(#dropShadow)"/>
+    <text x="24" y="26" fill="#304429" font-size="12" font-weight="700">架构收益 scoreboard</text>
+    <text x="24" y="48" fill="#586b51" font-size="11">入口行数：从 791 行降至 102 行 (-87%)</text>
+    <text x="290" y="48" fill="#586b51" font-size="11">DOM 重绘：由全局整体 innerHTML 重构变为局部精准刷新 (零切页闪烁)</text>
+    <text x="750" y="48" fill="#586b51" font-size="11">测试覆盖：24 项自动化单元测试全通过 (100%)</text>
+  </g>
+</svg>

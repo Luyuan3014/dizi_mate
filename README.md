@@ -76,17 +76,28 @@ npm run preview
 
 已检查桌面/手机布局和导航、16 音指法、孔位点击、G 调高音 6 映射（E7 / 2637 Hz）、高通频响（50 Hz 约 −19 dB / 150 Hz 约 −3 dB）、实时调音器高音识别与静音清空、同步节拍和旋律高亮、8 秒黄金长音及得分，以及合成输入的稳定判定、设备中断和权限拒绝。**尚未用真实 E 调竹笛进行实吹验收。**
 
+## 架构设计
+
+详细的系统架构设计、分层体系、生命周期契约与架构图见：
+👉 [**DiziMate 模块化分层架构设计文档**](docs/ARCHITECTURE.md)
+
 ## 文件
 
-| 文件                       | 作用                               |
-| -------------------------- | ---------------------------------- |
-| `src/main.js`              | 应用状态、导航、事件协调与本地记录 |
-| `src/views/`              | 练习、指法、调音器、长音、乐谱、简谱、历史及设置弹窗 View |
-| `src/components/`         | 共享图标、简谱标记、指法图、节拍器组件 |
-| `src/practice.js`         | 容差积分与长音挑战、评分模型 |
-| `src/metronome.js`        | 基于音频时钟的节拍和旋律调度 |
-| `src/music.js`             | 指法、练习、音高映射和设置校验     |
-| `src/audio.js`             | 麦克风、合成参考音和 YIN 检测      |
-| `src/style.css` / `src/views.css` | 基础样式及新模块桌面／手机样式 |
-| `tests/*.test.js`         | 20 项音频、练习、评分与调度自动检查 |
-| `tests/audio-harness.html` | 隔离的浏览器合成音验收页           |
+| 文件 | 作用 |
+| --- | --- |
+| src/main.js | 应用装配与全局事件监听（约 100 行轻量中枢） |
+| src/shell.js | 常驻单例外壳框架（Sidebar / Topbar / Modal / Toast 零重绘） |
+| src/router.js | 路由系统与页面 mount/unmount/update 生命周期驱动 |
+| src/store.js | 响应式状态管理、changedKeys 差分分发与 LocalStorage 持久化 |
+| src/audio-service.js | 麦克风录制、示范音合成、节拍器与高频帧流定向调度 |
+| src/views/ | 7 大页面组件：练习、指法、调音器、长音、曲谱、简谱、记录 |
+| src/components/ | 竹笛 SVG 物理图与交互热区、共享图标、简谱标记、节拍器控件 |
+| src/practice.js | 容差时间积分（ConfidenceBucket）与长音挑战评分模型 |
+| src/metronome.js | 基于音频时钟的节拍与旋律调度 |
+| src/music.js | 竹笛五调性指法、音高映射与频率算法 |
+| src/audio.js | 150 Hz 气流高通滤波、合成音与自相关音高检测 |
+| src/style.css / src/views.css | 基础样式及模块桌面／手机自适应样式 |
+| docs/ARCHITECTURE.md | 最新的模块化分层架构设计与技术文档 |
+| docs/architecture.svg | 高清矢量架构设计图 |
+| 	ests/*.test.js | 24 项音频算法、练习、评分、Store 及路由生命周期自动检查 |
+| 	ests/audio-harness.html | 隔离的浏览器合成音验收页 |
