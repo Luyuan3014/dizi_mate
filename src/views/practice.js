@@ -17,7 +17,7 @@ import {
 } from "../music.js";
 import { icon } from "../components/icons.js";
 import { hero, noteMarkup } from "../components/shared.js";
-import { fluteDiagram, getFluteClickTarget } from "../components/flute.js";
+import { fluteDiagram, getFluteClickTarget, mountFlute, unmountFlute } from "../components/flute.js";
 import { calculateTodayStats } from "../store.js";
 
 export function practicePage(state, stats) {
@@ -74,6 +74,7 @@ export class PracticePage {
     const state = this.context.store.getState();
     const stats = calculateTodayStats(state.sessions);
     this.container.innerHTML = practicePage(state, stats);
+    mountFlute(this.container);
 
     this.cacheElements();
     this.updateMicUI();
@@ -90,6 +91,7 @@ export class PracticePage {
   }
 
   unmount() {
+    unmountFlute(this.container);
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
@@ -221,12 +223,13 @@ export class PracticePage {
     }
 
     // 2. Replace flute diagram
-    const oldDiagram = this.container.querySelector(".flute-diagram");
+    const oldDiagram = this.container.querySelector(".flute-container, .flute-diagram");
     if (oldDiagram) {
       const temp = document.createElement("div");
       temp.innerHTML = fluteDiagram(note, state);
       const newDiagram = temp.firstElementChild;
       oldDiagram.replaceWith(newDiagram);
+      mountFlute(this.container);
     }
 
     // 3. Fingering caption half-hole indicator

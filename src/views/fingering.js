@@ -8,7 +8,7 @@ import {
 } from "../music.js";
 import { icon } from "../components/icons.js";
 import { hero, noteMarkup } from "../components/shared.js";
-import { fluteDiagram, getFluteClickTarget } from "../components/flute.js";
+import { fluteDiagram, getFluteClickTarget, mountFlute, unmountFlute } from "../components/flute.js";
 
 export function fingeringPage(state) {
   return `${hero(
@@ -50,6 +50,7 @@ export class FingeringPage {
     this.container = container;
     const state = this.context.store.getState();
     this.container.innerHTML = fingeringPage(state);
+    mountFlute(this.container);
 
     this.cacheElements();
     this.container.addEventListener("click", this.boundClickHandler);
@@ -60,6 +61,7 @@ export class FingeringPage {
   }
 
   unmount() {
+    unmountFlute(this.container);
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
@@ -114,12 +116,13 @@ export class FingeringPage {
     }
 
     // 3. Replace flute diagram
-    const oldDiagram = this.container.querySelector(".flute-diagram");
+    const oldDiagram = this.container.querySelector(".flute-container, .flute-diagram");
     if (oldDiagram) {
       const temp = document.createElement("div");
       temp.innerHTML = fluteDiagram(note, state);
       const newDiagram = temp.firstElementChild;
       oldDiagram.replaceWith(newDiagram);
+      mountFlute(this.container);
     }
 
     // 4. Update breath tip

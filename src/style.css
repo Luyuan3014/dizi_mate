@@ -620,12 +620,267 @@ h1 span {
   border-radius: 7px;
   gap: 6px;
 }
+.flute-container {
+  width: 100%;
+  max-width: 840px;
+  margin: 6px auto 14px;
+  user-select: none;
+}
+.flute-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 8px;
+  font-size: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.flute-model-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.flute-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4a5e38;
+  background: #eef3e6;
+  border: 1px solid #dbe5cf;
+}
+.flute-tip-hint {
+  font-size: 11px;
+  color: #8f9c81;
+}
+.flute-toolbar-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.flute-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #d9e2ce;
+  background: #fff;
+  color: #556947;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.flute-tool-btn:hover {
+  background: #f1f6eb;
+  border-color: #bcd0aa;
+}
+.flute-tool-btn.active {
+  background: #466b38;
+  color: #fff;
+  border-color: #3b5c2f;
+  box-shadow: 0 2px 6px rgba(70, 107, 56, 0.25);
+}
+.flute-3d-panel {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f4f7ee;
+  border: 1px solid #dce4d1;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.flute-3d-panel.show {
+  display: flex;
+}
+.flute-3d-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.flute-ctrl-btn {
+  padding: 4px 9px;
+  font-size: 11px;
+  border-radius: 5px;
+  background: #fff;
+  border: 1px solid #d2dcc7;
+  color: #586b49;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.flute-ctrl-btn:hover {
+  background: #eef4e6;
+  border-color: #b5c7a5;
+}
+.flute-ctrl-btn.active {
+  background: #4a6f3b;
+  color: #fff;
+  border-color: #4a6f3b;
+}
+.flute-angle-indicator {
+  font-size: 11px;
+  font-family: monospace;
+  color: #798c68;
+  font-weight: 600;
+  padding: 2px 6px;
+  background: #e7eedc;
+  border-radius: 4px;
+}
+.flute-stage {
+  position: relative;
+  width: 100%;
+}
+.flute-stage.stage-3d {
+  touch-action: pan-y;
+}
+.flute-stage.gallery-mode {
+  min-height: clamp(220px, 34vw, 320px);
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid #dbe4d1;
+  background: radial-gradient(ellipse at 50% 35%, #fffef9, #eef3e7 80%);
+  cursor: grab;
+  touch-action: none;
+  perspective: 1100px;
+}
+.flute-stage.gallery-mode.is-dragging {
+  cursor: grabbing;
+}
+.flute-viewer-canvas {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.gallery-mode .flute-viewer-canvas {
+  display: block;
+}
+.gallery-mode.viewer-ready .flute-viewer-canvas {
+  opacity: 1;
+}
+.gallery-mode .flute-3d-rotor {
+  position: absolute;
+  top: 50%;
+  margin-top: -45px;
+}
+.gallery-mode.viewer-ready .flute-3d-rotor {
+  visibility: hidden;
+}
+.flute-viewer-note {
+  display: none;
+  margin: 10px 4px 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #849177;
+}
+.mode-3d-active .flute-viewer-note {
+  display: block;
+}
+.flute-ctrl-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.flute-stage:focus-visible,
+.flute-tool-btn:focus-visible,
+.flute-ctrl-btn:focus-visible,
+.flute-hole-btn:focus-visible,
+.flute-blow-btn:focus-visible {
+  outline: 2px solid #678d50;
+  outline-offset: 4px;
+}
+@media (max-width: 540px) {
+  .flute-action-bar {
+    align-items: flex-start;
+  }
+  .flute-toolbar-btns {
+    width: 100%;
+  }
+  .flute-tool-btn,
+  .flute-ctrl-btn {
+    min-height: 36px;
+  }
+  .flute-3d-panel {
+    padding: 10px;
+  }
+}
+.flute-3d-rotor {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.04s ease-out;
+}
+.stage-3d .flute-3d-rotor {
+  transform-origin: 50% 50% 0px;
+}
+.flute-3d-shadow {
+  display: none;
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 6px;
+  height: 22px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(35, 25, 15, 0.3) 0%, rgba(40, 30, 20, 0.08) 55%, transparent 75%);
+  filter: blur(5px);
+  pointer-events: none;
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+.stage-3d .flute-3d-shadow {
+  display: block;
+}
+.flute-full-showcase {
+  display: none;
+  position: relative;
+  width: 100%;
+  padding: 24px 10px 32px;
+  text-align: center;
+  transform-style: preserve-3d;
+}
+.flute-full-showcase.show {
+  display: block;
+}
+.flute-diagram.hidden {
+  display: none;
+}
+.flute-full-photo {
+  max-width: 96%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 10px 16px rgba(35, 25, 15, 0.38));
+  transform: translateZ(16px);
+}
+.flute-stand-pedestal {
+  position: absolute;
+  bottom: 14px;
+  left: 18%;
+  right: 18%;
+  height: 12px;
+  background: linear-gradient(90deg, transparent 0%, #3e271a 15%, #5a3c28 50%, #3e271a 85%, transparent 100%);
+  border-radius: 4px;
+  opacity: 0.55;
+  filter: blur(1.5px);
+}
+.flute-photo-tube {
+  pointer-events: none;
+}
 .flute-diagram {
   position: relative;
   width: 100%;
   max-width: 820px;
   margin: 10px auto 14px;
   user-select: none;
+  transform-style: preserve-3d;
   transition: filter 0.3s ease;
 }
 .flute-svg {
