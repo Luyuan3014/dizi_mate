@@ -87,6 +87,7 @@ export class AudioService {
   stopMic() {
     const state = this.store.getState();
     const activePage = this.getActivePage();
+    activePage?.onMicStopped?.();
     if (activePage?.onFinishLongTone) {
       activePage.onFinishLongTone();
     }
@@ -113,6 +114,7 @@ export class AudioService {
     const state = this.store.getState();
     if (state.mic !== "on") return;
     const now = performance.now();
+    if (this.getActivePage()?.consumeAudioFrame?.(data)) return;
 
     if (data.referencePlaying) {
       this.confidence.reset();
@@ -292,6 +294,7 @@ export class AudioService {
   }
 
   stopAll() {
+    this.getActivePage()?.onStopAll?.();
     this.stopMetronome();
     this.stopMic();
     this.stopDemo();

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>笛伴 · 跟曲流程验收（合成数据）</title>
+<body><div id="app"></div><aside style="position:fixed;bottom:8px;left:8px;right:8px;z-index:100;background:#253f32;color:white;padding:12px;border-radius:10px;font:12px sans-serif"><b>验收环境 · 合成输入 · 不调用真实麦克风 · 记录只写内存</b> <button id="run-checks" style="background:#e4eecd;color:#304b39;padding:8px;border-radius:6px">运行流程验收</button> <span id="test-result" role="status">尚未运行</span></aside>
+<script type="module">
+import "../src/style.css";
+import "../src/views.css";
+import { createStore } from "../src/store.js";
+import { AppShell } from "../src/shell.js";
+import { Router } from "../src/router.js";
+import { AudioService } from "../src/audio-service.js";
+import { PracticePage } from "../src/views/practice.js";
+import { HistoryPage } from "../src/views/history.js";
+import { NOTES, frequencyFor } from "../src/music.js";
+import { readReports } from "../src/song-performance.js";
+const memory = new Map();
+Object.defineProperty(window,"localStorage",{value:{getItem:(k)=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)}});
+const store=createStore();
+const context={store};
+const shell=new AppShell(document.querySelector("#app"),{onNavigate:(id)=>context.router.navigate(id),onSettingsSaved:()=>{},onModalOpen:()=>context.audioService.stopAll()});
+context.shell=shell;
+const container=shell.mount(store.getState());
+const service=new AudioService({store,shell,getActivePage:()=>context.router?.getCurrentPage()});
+context.audioService=service;
+let deny=false, delayed=false,resolveStart;
+const clock={currentTime:0,state:"running"};
+service.engine={context:clock,smoother:{reset(){}},ready:async()=>clock,
+  start:async()=>{if(deny){deny=false;throw new DOMException("test denial","NotAllowedError");}if(delayed){delayed=false;return new Promise((resolve)=>{resolveStart=resolve;});}return true;},
+  stop(){},stopTones(){},stopClicks(){},scheduleTone(){},click(){},tone:async()=>{}};
+const router=new Router({container,context,routes:{practice:(ctx)=>new PracticePage(ctx),history:(ctx)=>new HistoryPage(ctx)},
+  onBeforeNavigate:(_,id)=>{service.stopAll();store.setState({page:id});},onAfterNavigate:(id)=>shell.updateNav(id)});
+context.router=router;
+router.init();
+document.querySelector("#run-checks").onclick=async()=>{
+const messages=[];
+const check=(value,label)=>{if(!value)throw new Error(label);messages.push(label);};
+try{
+router.navigate("practice");
+const page=router.getCurrentPage();const k=page.karaoke;k.setMode("song");
+await k.start();check(k.status==="countdown"&&store.getState().mic==="on","授权后倒数");
+clock.currentTime=k.startTime+2;k.tick();
+const n=k.performance.targetAt(2000);service.handleAudioFrame({frequency:frequencyFor(NOTES.find((note)=>note.id===n.id)),rms:.1});
+check(k.status==="running"&&container.querySelector("#karaoke-frequency").textContent.includes("Hz"),"实时音高反馈");
+k.pause();const offset=k.offset;check(k.status==="paused"&&store.getState().mic==="off","暂停释放麦克风");
+clock.currentTime+=30;await k.start();k.pause();check(k.offset===offset,"继续倒数时暂停不丢进度");
+await k.start();clock.currentTime=k.startTime+offset/1000+.05;k.tick();k.finish("ended");
+check(!k.report.completed&&k.report.elapsed<k.report.duration,"提前结束标记未完成");
+const firstCount=store.getState().reports.length;service.stopAll();check(store.getState().reports.length===firstCount,"报告只保存一次");
+deny=true;await k.start();check(store.getState().mic==="off"&&k.status==="idle","权限拒绝后可重试");
+check(container.querySelector("#karaoke-status").textContent.includes("授权"),"权限错误可见");
+delayed=true;const pending=k.start();k.cancel();resolveStart(true);await pending;check(k.status==="idle"&&store.getState().mic==="off","取消迟到授权");
+await k.start();clock.currentTime=k.startTime+3;k.tick();service.stopAll();check(k.report.reason==="interrupted"&&store.getState().mic==="off","后台或离开时保存中断报告");
+await k.preview();service.stopAll();check(k.status!=="preview","离开时取消试听与调度");
+await k.start();const take=k.performance;
+for(let time=0;time<take.timeline.duration;time+=50){clock.currentTime=k.startTime+time/1000;const note=take.targetAt(time);service.handleAudioFrame({frequency:frequencyFor(NOTES.find((n)=>n.id===note.id)),rms:.1});if(time%250===0)k.tick();}
+clock.currentTime=k.startTime+take.timeline.duration/1000+.001;k.tick();
+check(k.report.completed&&store.getState().mic==="off"&&k.report.score>=85,"整曲结束自动报告");
+check(container.querySelector(".performance-report")&&k.bestCombo>10,"报告与连击呈现");
+check(readReports(localStorage).length===store.getState().reports.length,"报告可持久化恢复");
+router.navigate("history");check(container.querySelectorAll(".report-history-item").length===store.getState().reports.length,"练习记录可回看报告");
+router.navigate("practice");router.getCurrentPage().karaoke.setMode("song");
+// Keep the completed synthesized report visible for visual and export checks.
+const shown=router.getCurrentPage().karaoke;shown.report=store.getState().reports.at(-1);shown.status="finished";shown.render();
+document.querySelector("#test-result").textContent=`通过 ${messages.length} 项：${messages.join(" · ")}`;
+}catch(error){document.querySelector("#test-result").textContent=`失败：${error.message}`;console.error(error);}
+};
+</script></body></html>

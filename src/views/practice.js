@@ -19,6 +19,7 @@ import { icon } from "../components/icons.js";
 import { hero, noteMarkup } from "../components/shared.js";
 import { fluteDiagram, getFluteClickTarget, mountFlute, unmountFlute } from "../components/flute.js";
 import { calculateTodayStats } from "../store.js";
+import { Karaoke, karaokeEntry } from "../components/karaoke.js";
 
 export function practicePage(state, stats) {
   return `${hero(
@@ -45,16 +46,18 @@ export function practicePage(state, stats) {
       </section>
       <aside class="companion-column">
         <section class="companion-card" aria-label="实时音高陪练"><div class="companion-top"><span>${icon("sparkle")} 实时陪练</span><span class="mic-state" id="mic-state"><i></i>等待开启</span></div>
+          ${karaokeEntry()}<div id="karaoke-panel" hidden></div><div id="free-companion">
           <div class="listening-orb" id="listening-orb"><div class="orb-ring"></div><div class="orb-ring second"></div><span>${icon("mic")}</span><i class="orb-spark spark-one"></i><i class="orb-spark spark-two"></i></div>
           <h2 id="feedback-title" aria-live="polite" aria-atomic="true">我在这里，听你吹奏</h2><p class="feedback-copy" id="feedback-copy">不怕吹错，每一声都是进步。</p>
           <div class="waveform" id="waveform" aria-hidden="true">${Array.from({ length: 35 }, (_, i) => `<i style="--wave:${8 + Math.sin(i * 1.1) ** 2 * (13 + Math.sin(i / 6) ** 2 * 21)}px;--delay:${i * -0.075}s"></i>`).join("")}</div>
           <div class="pitch-panel"><div class="pitch-values"><span>当前音高 <strong id="actual-pitch">—</strong></span><span>目标 <strong id="target-pitch">${noteLabel(state.note)} (${pitchNameFor(state.note, state.key)}) · ${Math.round(frequencyFor(state.note, state.key, state.reference))} Hz</strong></span></div><div class="pitch-scale"><span class="pitch-safe-zone" style="left:${50 - state.tolerance * 0.46}%;width:${state.tolerance * 0.92}%"></span><i id="pitch-indicator" hidden></i><span class="pitch-center"></span></div><div class="pitch-scale-labels"><span>偏低</span><span>刚刚好</span><span>偏高</span></div></div>
           <button class="button mic-button" id="mic-button" data-action="mic">${icon("mic")} 开启麦克风，试着吹</button><div class="privacy-note">${icon("shield")} 声音只在本机处理，不录音、不上传</div>
-          <div class="live-progress" id="live-progress"></div>
+          <div class="live-progress" id="live-progress"></div></div>
         </section>
         <button class="small-help-card" data-action="help"><span class="help-card-icon">${icon("help")}</span><span><strong>怎么还吹不响？</strong><small>先别急，试试这 3 个小动作</small></span>${icon("arrow")}</button>
       </aside>
     </div>
+    <div id="karaoke-stage" hidden></div>
     <div class="long-tone-entry"><span>把一个音吹稳，再走向下一段旋律。</span><button class="button button-outline" data-action="long-tone">进入长音练习 · 3 / 5 / 8 秒挑战 ${icon("arrow")}</button></div><section class="journey-section"><div class="section-heading"><h2>你的入门小路<span>一步一步，就会了</span></h2><span>跟着自己的节奏来 ${icon("leaf")}</span></div><div class="journey-grid">${LESSONS.map((lesson, index) => `<button class="journey-card ${state.lesson.id === lesson.id ? "current" : ""}" data-action="lesson" data-lesson="${lesson.id}"><span class="journey-illustration illustration-${index}">${index === 0 ? "<i></i><i></i><i></i><i></i><i></i>" : index === 1 ? "<b>5</b><b>6</b><b>7</b>" : icon("music")}</span><span class="journey-content"><span class="journey-eyebrow">STEP 0${index + 1}${state.lesson.id === lesson.id ? "<em>正在练习</em>" : ""}</span><strong>${lesson.name}</strong><small>${lesson.subtitle}</small><span class="journey-duration">${icon("clock")} ${lesson.duration}</span></span>${icon("chevron")}</button>`).join("")}</div></section>`;
 }
 
@@ -77,6 +80,7 @@ export class PracticePage {
     mountFlute(this.container);
 
     this.cacheElements();
+    this.karaoke = new Karaoke(this.context, this.container);
     this.updateMicUI();
     this.updateMetronomeUI();
 
@@ -91,6 +95,7 @@ export class PracticePage {
   }
 
   unmount() {
+    this.karaoke?.unmount();
     unmountFlute(this.container);
     if (this.unsubscribe) {
       this.unsubscribe();
@@ -133,7 +138,14 @@ export class PracticePage {
   setFeedback(title, copy) {
     this.setText(this.feedbackTitle, title);
     this.setText(this.feedbackCopy, copy);
+    if (this.karaoke?.mode === "song" && !["countdown", "running"].includes(this.karaoke.status)) {
+      this.setText(this.container?.querySelector("#karaoke-status"), `${title} · ${copy}`);
+    }
   }
+
+  consumeAudioFrame(data) { return this.karaoke?.onAudioFrame(data) || false; }
+  onMicStopped() { this.karaoke?.onMicStopped(); }
+  onStopAll() { this.karaoke?.interrupt(); }
 
   selectNote(index, stopAudio = true) {
     if (stopAudio) this.context.audioService.stopDemo();
@@ -184,6 +196,15 @@ export class PracticePage {
   }
 
   update(state, changedKeys) {
+    if (changedKeys.has("lesson")) {
+      const notes = this.container?.querySelector(".score-notes");
+      if (notes) notes.innerHTML = state.lesson.sequence.map((id, index) => {
+        const note = NOTES.find((n) => n.id === id);
+        return `<button class="score-note" data-action="select-note" data-index="${index}" aria-label="练习第 ${index+1} 个音 ${noteLabel(note)}">${noteMarkup(note)}<span>${state.lesson.lyrics?.[index] || note.solfege}</span></button>`;
+      }).join("");
+      this.setText(this.container?.querySelector(".score-label > span"), state.lesson.name);
+      this.setText(this.container?.querySelector(".score-label > small"), state.lesson.stage === "跟曲演奏" ? "跟随下方音高谱的时值" : "点击数字，看看指法");
+    }
     if (
       changedKeys.has("note") ||
       changedKeys.has("lesson") ||
@@ -286,7 +307,7 @@ export class PracticePage {
     if (cardTopLevel) {
       this.setText(
         cardTopLevel,
-        `零基础 · 第 ${LESSONS.findIndex((l) => l.id === state.lesson.id) + 1} 步`,
+        state.lesson.stage === "跟曲演奏" ? "跟曲演奏 · 完整旋律" : LESSONS.some((l) => l.id === state.lesson.id) ? `零基础 · 第 ${LESSONS.findIndex((l) => l.id === state.lesson.id) + 1} 步` : "曲谱练习",
       );
     }
     const lessonTitle = this.container.querySelector(".lesson-heading h2");
@@ -300,7 +321,7 @@ export class PracticePage {
       card.classList.toggle("current", isCurrent);
       const eyebrow = card.querySelector(".journey-eyebrow");
       if (eyebrow) {
-        const stepNum = card.dataset.lesson === "song" ? "03" : card.dataset.lesson === "step2" ? "02" : "01";
+        const stepNum = String(LESSONS.findIndex((l) => l.id === card.dataset.lesson)+1).padStart(2,"0");
         eyebrow.innerHTML = `STEP ${stepNum}${isCurrent ? "<em>正在练习</em>" : ""}`;
       }
     });
@@ -478,6 +499,10 @@ export class PracticePage {
   }
 
   handleClick(event) {
+    const karaokeButton = event.target.closest("[data-action]");
+    if (this.karaoke?.handleClick(karaokeButton?.dataset.action, karaokeButton)) return;
+    if (this.karaoke?.mode === "song" && karaokeButton?.dataset.action === "lesson") this.karaoke.setMode("free");
+    if (this.karaoke?.busy && (karaokeButton || getFluteClickTarget(event))) this.karaoke.interrupt();
     if (handleMetronomePresetClick(event, this.context)) {
       return;
     }
@@ -551,6 +576,10 @@ export class PracticePage {
   }
 
   handleInput(event) {
+    if (event.target.id === "karaoke-bpm" && !this.karaoke.busy) {
+      this.container.querySelector("#karaoke-bpm-label").textContent = event.target.value;
+      return;
+    }
     if (event.target.id !== "metro-bpm") return;
     const value = Number(event.target.value);
     const m = this.context.store.getState().metronome;
@@ -577,6 +606,7 @@ export class PracticePage {
 
   handleChange(event) {
     const field = event.target;
+    if (this.karaoke?.handleChange(field)) return;
     if (field.id === "metro-bpm" || field.id === "metro-beats") {
       const m = this.context.store.getState().metronome;
       const wasRunning = this.context.audioService.metronome.running;
