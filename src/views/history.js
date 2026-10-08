@@ -2,6 +2,12 @@ import { NOTES, noteLabel } from "../music.js";
 import { icon } from "../components/icons.js";
 import { hero } from "../components/shared.js";
 import { calculateTodayStats } from "../store.js";
+import { performanceReport, exportPerformanceReport, escapeHTML } from "../components/performance-report.js";
+
+export function renderReports(reports = []) {
+  if (!reports.length) return `<div class="report-history-empty">还没有演奏报告。在今日陪练的「实时陪练 → 跟曲演奏」中吹一首，报告就会保存在这里。</div>`;
+  return reports.slice().reverse().map((r) => `<details class="report-history-item"><summary><span>${icon("chart")}<b>${escapeHTML(r.title)}</b><small>${new Date(r.at).toLocaleString("zh-CN")} · ${r.bpm} BPM · ${r.completed ? "完整演奏" : "提前结束"}</small></span><strong>${r.score === null ? "数据不足" : `${r.score} 分`}</strong></summary>${performanceReport(r)}</details>`).join("");
+}
 
 export function historyPage(state, stats) {
   const total = state.sessions.reduce(
@@ -18,6 +24,7 @@ export function historyPage(state, stats) {
       <div class="card"><span>今日吹准</span><strong id="history-today-notes">${stats.notes}<small>个不同的音</small></strong></div>
       <div class="card"><span>近期练习</span><strong id="history-total-time">${Math.floor(total / 60)}<small>分 ${Math.floor(total % 60)} 秒</small></strong></div>
     </div>
+    <section class="card report-history"><div class="section-heading"><h2>演奏报告</h2><span>最近 20 份 · 仅存本机</span></div><div id="history-reports-container">${renderReports(state.reports)}</div></section>
     <section class="card history-list">
       <div class="section-heading"><h2>练习足迹</h2><span>最近 20 次 · 仅存本机</span></div>
       <div id="history-sessions-container">${renderSessionList(state.sessions)}</div>
@@ -73,6 +80,10 @@ export class HistoryPage {
   }
 
   update(state, changedKeys) {
+    if (changedKeys.has("reports")) {
+      const reports = this.container?.querySelector("#history-reports-container");
+      if (reports) reports.innerHTML = renderReports(state.reports);
+    }
     if (changedKeys.has("sessions")) {
       const stats = calculateTodayStats(state.sessions);
       const total = state.sessions.reduce((sum, s) => sum + s.seconds, 0);
@@ -103,6 +114,11 @@ export class HistoryPage {
     const button = event.target.closest("[data-action]");
     if (!button) return;
     const action = button.getAttribute("data-action");
+    if (action === "karaoke-export") {
+      const report = this.context.store.getState().reports.find((r) => r.id === button.dataset.report);
+      if (report) exportPerformanceReport(report);
+      return;
+    }
     if (action === "practice") {
       this.context.router.navigate("practice");
     }
