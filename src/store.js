@@ -1,4 +1,5 @@
 import { NOTES, LESSONS, readSaved } from "./music.js";
+import { readReports } from "./song-performance.js";
 
 export function createInitialState() {
   let saved;
@@ -13,6 +14,7 @@ export function createInitialState() {
 
   return {
     ...saved,
+    reports: (() => { try { return typeof localStorage !== "undefined" ? readReports(localStorage) : []; } catch { return []; } })(),
     page: "practice",
     lesson: LESSONS[0],
     index: 0,
@@ -42,9 +44,13 @@ export function saveSettings(state) {
           sessions: state.sessions,
         }),
       );
+      localStorage.setItem("dizimate-reports-v1", JSON.stringify(state.reports || []));
+      return true;
     }
+    return false;
   } catch (error) {
     console.warn("Storage save failed:", error);
+    return false;
   }
 }
 
@@ -60,7 +66,7 @@ export function calculateTodayStats(sessions = []) {
 }
 
 export function createStore(initialState = createInitialState()) {
-  let state = { ...initialState };
+  let state = { reports: [], ...initialState };
   const listeners = new Set();
 
   return {
@@ -90,7 +96,12 @@ export function createStore(initialState = createInitialState()) {
       return () => listeners.delete(listener);
     },
     save() {
-      saveSettings(state);
+      return saveSettings(state);
+    },
+    addReport(report) {
+      if (state.reports.some((r) => r.id === report.id)) return true;
+      this.setState({ reports: [...state.reports, report].slice(-20) });
+      return this.save();
     },
     addSession(seconds, notes = []) {
       if (seconds < 1) return;
