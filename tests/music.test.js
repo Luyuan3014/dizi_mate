@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { detectPitch, AudioEngine } from "../src/audio.js";
 import {
   NOTES,
+  LESSONS,
   KEYS,
   frequencyFor,
   centsBetween,
@@ -203,6 +204,45 @@ test("beginner SONGS collection defines valid notes, tempo, and sequence", () =>
       assert.ok(
         NOTES.some((n) => n.id === noteId),
         `Note ${noteId} in ${song.id} must exist in NOTES`,
+      );
+    }
+  }
+});
+
+
+test("beginner progressive LESSONS curriculum implements breath & fingering separation", () => {
+  assert.equal(LESSONS.length, 5);
+
+  // Step 1: Breath only, starting with low-resistance note
+  assert.equal(LESSONS[0].id, "breath");
+  assert.equal(LESSONS[0].focus, "breath");
+  assert.equal(LESSONS[0].sequence[0], "2"); // middle re, easy to blow
+  assert.ok(LESSONS[0].badge.includes("纯练气息"));
+
+  // Step 2: Silent fingering drill
+  assert.equal(LESSONS[1].id, "finger-drill");
+  assert.equal(LESSONS[1].focus, "fingering");
+  assert.ok(LESSONS[1].instruction.includes("不用吹气"));
+
+  // Step 3: Combine easy notes
+  assert.equal(LESSONS[2].id, "combine-easy");
+  assert.equal(LESSONS[2].focus, "combine");
+  assert.deepEqual(LESSONS[2].sequence, ["1", "2", "3"]);
+
+  // Step 4: Downward extension to all closed
+  assert.equal(LESSONS[3].id, "combine-low");
+  assert.deepEqual(LESSONS[3].sequence, ["low7", "low6", "low5"]);
+
+  // Step 5: Full melody
+  assert.equal(LESSONS[4].id, "song");
+  assert.deepEqual(LESSONS[4].sequence, ["1", "2", "3", "1", "1", "2", "3", "1"]);
+
+  // Verify all notes in all lessons exist in NOTES
+  for (const lesson of LESSONS) {
+    for (const noteId of lesson.sequence) {
+      assert.ok(
+        NOTES.some((n) => n.id === noteId),
+        `Note ${noteId} in lesson ${lesson.id} exists`,
       );
     }
   }

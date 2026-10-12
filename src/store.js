@@ -12,13 +12,16 @@ export function createInitialState() {
     saved = readSaved({ getItem: () => null });
   }
 
+  const initialLesson = LESSONS[0];
+  const initialNote = NOTES.find((n) => n.id === initialLesson.sequence[0]) || NOTES[0];
+
   return {
     ...saved,
     reports: (() => { try { return typeof localStorage !== "undefined" ? readReports(localStorage) : []; } catch { return []; } })(),
     page: "practice",
-    lesson: LESSONS[0],
+    lesson: initialLesson,
     index: 0,
-    note: NOTES[0],
+    note: initialNote,
     customHoles: null,
     mic: "off",
     demo: false,
@@ -26,7 +29,7 @@ export function createInitialState() {
     sessionNotes: new Set(),
     sessionStarted: 0,
     metronome: { bpm: 60, beats: 4, open: false, running: false },
-    longNote: NOTES[0],
+    longNote: initialNote,
     longArmed: false,
     challenge: null,
   };
