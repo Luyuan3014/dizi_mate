@@ -348,7 +348,7 @@ export class NotationPage {
       });
       this.context.router.navigate("practice");
     } else if (action === "lesson") {
-      const lesson = LESSONS[2];
+      const lesson = LESSONS.find((l) => l.id === "song") || LESSONS[LESSONS.length - 1];
       const note = NOTES.find((n) => n.id === lesson.sequence[0]);
       this.stopNotationDemo();
       this.context.audioService.stopMic();

@@ -18,10 +18,15 @@ export function longTonePage(state) {
     "保持音高在绿色带内，看看这一次，你能稳稳走多远。",
   )}
     <section class="card long-tone-card">
-      <div class="long-tone-toolbar"><label for="long-note">练习音符 <select id="long-note">${NOTES.map((n) => `<option value="${n.id}" ${n.id === note.id ? "selected" : ""}>${noteLabel(n)} · ${pitchNameFor(n, state.key)}</option>`).join("")}</select></label>
+      <div class="long-tone-toolbar"><label for="long-note">练习音符 <select id="long-note">${NOTES.map((n) => {
+          const isBeginner = n.id === "2" || n.id === "1";
+          const tag = isBeginner ? "⭐ [新手首选] " : n.id === "low5" ? "⚠️ [全按挑战] " : "";
+          return `<option value="${n.id}" ${n.id === note.id ? "selected" : ""}>${tag}${noteLabel(n)} · ${pitchNameFor(n, state.key)}</option>`;
+        }).join("")}</select></label>
         <span id="long-hz-span">${pitchNameFor(note, state.key)} · ${frequencyFor(note, state.key, state.reference).toFixed(1)} Hz · ±${state.tolerance} 音分</span>
       </div>
       <div id="long-hole-container">${holeRow(note)}</div><p class="long-tip" id="long-tip">${note.tip}</p>
+      <div class="long-beginner-banner" id="long-beginner-banner">${note.id === "2" || note.id === "1" ? '<span>⭐ <strong>新手发音首选音</strong>：按孔少、气流阻力小，极易吹响，是找准瓶口风门与腹式长音的最佳起点。</span>' : note.id === "low5" ? '<span>⚠️ <strong>全按低音 5 挑战</strong>：需 6 个孔完全密闭且气流极缓。若吹不响或发虚，请先切换至中音 2 或 1 练习！</span>' : '<span>💡 <strong>长音练习要诀</strong>：一口气均匀送出，风门保持稳定，尽量让音高平稳落在绿色安全带内。</span>'}</div>
       <div class="challenge-milestones">${[[3, "青铜"], [5, "白银"], [8, "黄金"]].map(([s, m]) => `<div data-medal="${s}"><b>${s}<small>秒</small></b><span>${m}</span></div>`).join("")}</div>
       <div class="hold-readout"><strong id="hold-seconds">0.0<small>秒</small></strong><span id="hold-status">点击开始挑战，吹响后自动计时</span></div>
       <div class="hold-progress"><span id="hold-progress"></span></div>
@@ -135,6 +140,7 @@ export class LongTonePage {
     this.longHzSpan = this.container.querySelector("#long-hz-span");
     this.longHoleContainer = this.container.querySelector("#long-hole-container");
     this.longTip = this.container.querySelector("#long-tip");
+    this.longBeginnerBanner = this.container.querySelector("#long-beginner-banner");
   }
 
   setText(el, text) {

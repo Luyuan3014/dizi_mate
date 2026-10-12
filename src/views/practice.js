@@ -30,7 +30,7 @@ export function practicePage(state, stats) {
   )}
     <div class="practice-grid">
       <section class="practice-card card" aria-label="指法练习">
-        <div class="card-top"><span class="section-kicker"><span class="tiny-dot"></span> 今日的小练习</span><span class="level-tag">零基础 · 第 ${LESSONS.findIndex((lesson) => lesson.id === state.lesson.id) + 1} 步</span></div>
+        <div class="card-top"><span class="section-kicker"><span class="tiny-dot"></span> 今日的小练习</span><span class="level-tag">${state.lesson.badge || `零基础 · 第 ${LESSONS.findIndex((lesson) => lesson.id === state.lesson.id) + 1} 步`}</span></div>
         <div class="lesson-heading"><div><h2>${state.lesson.name}</h2><p>${state.lesson.instruction}</p></div><button class="round-help" data-action="help" aria-label="查看吹奏方法">${icon("help")}</button></div>
         <div class="practice-tabs" aria-label="练习方式"><span class="selected">${icon("hand")} 看指法，跟着吹</span><button data-action="notation">${icon("book")} 简谱怎么看？${icon("chevron")}</button></div>
         <div class="target-note-row"><div class="target-note">${noteMarkup(state.note)}<div><strong>${state.note.solfege} <span>${state.note.low ? "低音" : state.note.high ? "高音" : "中音"} · ${pitchNameFor(state.note, state.key)}</span></strong><p>${state.note.title}</p></div></div><button class="button button-outline listen-button" data-action="listen">${icon(state.demo ? "pause" : "volume")}<span>${state.demo ? "停止示范" : "听听这个音"}</span></button></div>
@@ -42,7 +42,7 @@ export function practicePage(state, stats) {
           const lyric = state.lesson.lyrics?.[index] || noteObj?.solfege || id;
           return `<button class="score-note ${index === state.index ? "current" : ""} ${state.passed.has(`${state.lesson.id}:${index}:${id}`) ? "passed" : ""}" data-action="select-note" data-index="${index}" aria-label="练习第 ${index + 1} 个音 ${noteLabel(noteObj)}" ${index === state.index ? 'aria-current="step"' : ""}>${noteMarkup(noteObj)}<span>${lyric}</span></button>`;
         }).join("")}</div><button class="score-play" data-action="demo" aria-label="节拍器同步打拍示范" title="节拍器同步打拍示范">${icon(state.demo ? "pause" : "play")}</button></div>
-        <div class="practice-card-footer"><span>${icon("headphone")} 参考音为合成音，帮你找到音高</span><button data-action="next" id="practice-next-btn">${state.index < state.lesson.sequence.length - 1 ? "下一个音" : LESSONS.indexOf(state.lesson) < 2 ? "下一小步" : "再练一次"} ${icon("arrow")}</button></div>
+        <div class="practice-card-footer"><span>${icon("headphone")} 参考音为合成音，帮你找到音高</span><button data-action="next" id="practice-next-btn">${state.index < state.lesson.sequence.length - 1 ? "下一个音" : LESSONS.indexOf(state.lesson) < LESSONS.length - 1 ? "下一小步" : "再练一次"} ${icon("arrow")}</button></div>
       </section>
       <aside class="companion-column">
         <section class="companion-card" aria-label="实时音高陪练"><div class="companion-top"><span>${icon("sparkle")} 实时陪练</span><span class="mic-state" id="mic-state"><i></i>等待开启</span></div>
@@ -58,7 +58,19 @@ export function practicePage(state, stats) {
       </aside>
     </div>
     <div id="karaoke-stage" hidden></div>
-    <div class="long-tone-entry"><span>把一个音吹稳，再走向下一段旋律。</span><button class="button button-outline" data-action="long-tone">进入长音练习 · 3 / 5 / 8 秒挑战 ${icon("arrow")}</button></div><section class="journey-section"><div class="section-heading"><h2>你的入门小路<span>一步一步，就会了</span></h2><span>跟着自己的节奏来 ${icon("leaf")}</span></div><div class="journey-grid">${LESSONS.map((lesson, index) => `<button class="journey-card ${state.lesson.id === lesson.id ? "current" : ""}" data-action="lesson" data-lesson="${lesson.id}"><span class="journey-illustration illustration-${index}">${index === 0 ? "<i></i><i></i><i></i><i></i><i></i>" : index === 1 ? "<b>5</b><b>6</b><b>7</b>" : icon("music")}</span><span class="journey-content"><span class="journey-eyebrow">STEP 0${index + 1}${state.lesson.id === lesson.id ? "<em>正在练习</em>" : ""}</span><strong>${lesson.name}</strong><small>${lesson.subtitle}</small><span class="journey-duration">${icon("clock")} ${lesson.duration}</span></span>${icon("chevron")}</button>`).join("")}</div></section>`;
+    <div class="long-tone-entry"><span>把一个音吹稳，再走向下一段旋律。</span><button class="button button-outline" data-action="long-tone">进入长音练习 · 3 / 5 / 8 秒挑战 ${icon("arrow")}</button></div><section class="journey-section"><div class="section-heading"><h2>你的入门小路<span>一步一步，就会了</span></h2><span>跟着自己的节奏来 ${icon("leaf")}</span></div><div class="journey-grid">${LESSONS.map((lesson, index) => {
+    const isCurrent = state.lesson.id === lesson.id;
+    const illustration = index === 0
+      ? "<i></i><i></i><i></i><i></i><i></i>"
+      : index === 1
+        ? icon("hand")
+        : index === 2
+          ? "<b>1</b><b>2</b><b>3</b>"
+          : index === 3
+            ? "<b>5̣</b><b>6̣</b><b>7̣</b>"
+            : icon("music");
+    return `<button class="journey-card ${isCurrent ? "current" : ""}" data-action="lesson" data-lesson="${lesson.id}"><span class="journey-illustration illustration-${index}">${illustration}</span><span class="journey-content"><span class="journey-eyebrow">STEP 0${index + 1}${isCurrent ? "<em>正在练习</em>" : ""}</span><strong>${lesson.name}</strong><small>${lesson.subtitle}</small><span class="journey-duration">${icon("clock")} ${lesson.duration}</span></span>${icon("chevron")}</button>`;
+  }).join("")}</div></section>`;
 }
 
 export class PracticePage {
@@ -274,7 +286,7 @@ export class PracticePage {
 
     // 6. Update next button
     if (this.nextButton) {
-      this.nextButton.innerHTML = `${state.index < state.lesson.sequence.length - 1 ? "下一个音" : LESSONS.indexOf(state.lesson) < 2 ? "下一小步" : "再练一次"} ${icon("arrow")}`;
+      this.nextButton.innerHTML = `${state.index < state.lesson.sequence.length - 1 ? "下一个音" : LESSONS.indexOf(state.lesson) < LESSONS.length - 1 ? "下一小步" : "再练一次"} ${icon("arrow")}`;
     }
 
     // 7. Update target pitch
@@ -360,7 +372,7 @@ export class PracticePage {
       if (this.pitchIndicator) this.pitchIndicator.hidden = true;
       this.setText(this.actualPitch, "—");
       this.setFeedback(
-        requesting ? "允许麦克风，一起试试" : "我在这里，听你吹奏",
+        requesting ? "允许麦克风，一起试试" : state.lesson.focus === "fingering" ? "静音指法阶段" : "我在这里，听你吹奏",
         requesting
           ? "在浏览器的权限提示中选择“允许”。"
           : "不怕吹错，每一声都是进步。",
@@ -541,7 +553,7 @@ export class PracticePage {
         this.selectNote(state.index + 1);
       } else {
         const nextLessonIdx = Math.min(
-          2,
+          LESSONS.length - 1,
           LESSONS.findIndex((l) => l.id === state.lesson.id) + 1,
         );
         this.chooseLesson(LESSONS[nextLessonIdx].id);

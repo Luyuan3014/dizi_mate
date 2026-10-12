@@ -1652,6 +1652,28 @@ h1 span {
   background: #edf1eb;
   color: #8a9b86;
 }
+
+.illustration-2 b,
+.illustration-3 b {
+  font-size: 15px;
+  font-weight: 500;
+}
+.illustration-3 {
+  background: #fbf2dc;
+  color: #9c7634;
+  gap: 2px;
+  align-items: center;
+}
+.illustration-4 {
+  background: #edf1eb;
+  color: #8a9b86;
+}
+.illustration-4 .icon {
+  width: 30px;
+  height: 30px;
+  stroke-width: 1.4;
+}
+
 .illustration-2 .icon {
   width: 30px;
   height: 30px;
