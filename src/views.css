@@ -394,3 +394,146 @@ button:disabled { opacity: .5; cursor: default; }
   .song-actions-row { flex-direction: column; }
   .song-actions-row .button { width: 100%; justify-content: center; }
 }
+
+
+/* Silent Fingering Drill & Seal Check */
+.silent-drill-card {
+  margin-top: 24px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.silent-drill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.silent-drill-header h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #3b5332;
+  margin: 4px 0 6px;
+}
+.silent-drill-header p {
+  font-size: 13px;
+  color: #728467;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.6;
+}
+.drill-routines-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.drill-routine-item {
+  background: #f7f9f3;
+  border: 1px solid #e1e9d8;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.routine-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.routine-title strong {
+  font-size: 14px;
+  color: #334d2b;
+}
+.routine-title small {
+  font-size: 11px;
+  color: #7f9175;
+}
+.drill-routine-item p {
+  font-size: 12px;
+  color: #697c60;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+.routine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.seal-check-guide {
+  background: #f2f6ec;
+  border: 1px solid #d7e2ce;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.seal-check-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #436137;
+  margin-bottom: 14px;
+}
+.seal-check-title .icon {
+  width: 16px;
+  height: 16px;
+}
+.seal-check-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.seal-check-steps > div {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.seal-check-steps b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #dce7d1;
+  color: #426036;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.seal-check-steps span strong {
+  display: block;
+  font-size: 13px;
+  color: #334d2b;
+  margin-bottom: 4px;
+}
+.seal-check-steps span p {
+  font-size: 11px;
+  color: #6d8065;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Long tone beginner banner */
+.long-beginner-banner {
+  margin: 10px 0 18px;
+  padding: 10px 16px;
+  background: #f4f8ee;
+  border: 1px solid #d5e2cb;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #4e6b41;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .drill-routines-grid,
+  .seal-check-steps {
+    grid-template-columns: 1fr;
+  }
+}

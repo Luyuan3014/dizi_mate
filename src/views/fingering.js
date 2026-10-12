@@ -35,6 +35,74 @@ export function fingeringPage(state) {
         <button class="button button-primary" data-action="practice-note">练练这个音 ${icon("arrow")}</button>
       </div>
     </section>
+    <section class="card silent-drill-card" aria-label="静音指法操与手感自查">
+      <div class="silent-drill-header">
+        <div>
+          <span class="section-kicker"><span class="tiny-dot"></span> 零基础专项 · 肌肉触感</span>
+          <h2>静音指法操：触感与闭孔自查</h2>
+          <p>不吹气、无杂音干扰。双手横握竹笛，专注手指在音孔上的平稳起落，单独建立指腹密闭手感。</p>
+        </div>
+        <button class="button button-outline" data-action="toggle-drill-metro">
+          ${icon("clock")} <span id="drill-metro-label">开启节拍静音动指</span>
+        </button>
+      </div>
+
+      <div class="drill-routines-grid">
+        <div class="drill-routine-item">
+          <div class="routine-title">
+            <strong>1. 基础三音起落操</strong>
+            <small>左手 3 ➔ 2 ➔ 1 依次下落</small>
+          </div>
+          <p>从只按第 6 孔的 3，依次落下中指(2)与无名指(1)。体会指节自然弧度与无声起落。</p>
+          <div class="routine-actions">
+            <button class="button ${state.note.id === "3" ? "button-primary" : "button-outline"} mini-cta" data-action="drill-note" data-note="3">按 3</button>
+            <button class="button ${state.note.id === "2" ? "button-primary" : "button-outline"} mini-cta" data-action="drill-note" data-note="2">按 2</button>
+            <button class="button ${state.note.id === "1" ? "button-primary" : "button-outline"} mini-cta" data-action="drill-note" data-note="1">按 1</button>
+          </div>
+        </div>
+
+        <div class="drill-routine-item">
+          <div class="routine-title">
+            <strong>2. 左右手交接操</strong>
+            <small>左手 1 ➔ 右手低音 7</small>
+          </div>
+          <p>左手三孔盖严，落下右手食指（盖第 3 孔）。初学最易在此漏气，注意右手手指不可翘起紧绷。</p>
+          <div class="routine-actions">
+            <button class="button ${state.note.id === "1" ? "button-primary" : "button-outline"} mini-cta" data-action="drill-note" data-note="1">中音 1</button>
+            <button class="button ${state.note.id === "low7" ? "button-primary" : "button-outline"} mini-cta" data-action="drill-note" data-note="low7">低音 7</button>
+          </div>
+        </div>
+
+        <div class="drill-routine-item">
+          <div class="routine-title">
+            <strong>3. 六孔全按耐力操</strong>
+            <small>六孔全盖严 · 攻克全按低音 5</small>
+          </div>
+          <p>双手六指同时平贴孔面，适度施压 3 秒后抬起看印痕。找到最舒适自然的持笛手型。</p>
+          <div class="routine-actions">
+            <button class="button ${state.note.id === "low5" ? "button-primary" : "button-outline"} mini-cta" data-action="drill-note" data-note="low5">全按低音 5</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="seal-check-guide">
+        <div class="seal-check-title">${icon("shield")} <strong>指腹盖严自检 3 要诀</strong></div>
+        <div class="seal-check-steps">
+          <div>
+            <b>01</b>
+            <span><strong>肉厚处平盖</strong><p>用手指第一节肉最饱满的地方平平盖住音孔，绝不要用指尖抠孔或指关节硬骨压孔。</p></span>
+          </div>
+          <div>
+            <b>02</b>
+            <span><strong>压痕排查法</strong><p>适度按紧 3 秒后抬起手指对着光线看指腹：若留下完整封闭的圆印说明密闭极佳；若有缺口说明有缝隙漏气。</p></span>
+          </div>
+          <div>
+            <b>03</b>
+            <span><strong>手指放松呈拱形</strong><p>手腕下沉，虎口放松，手指像轻握一颗鸡蛋自然微曲。按孔不可僵硬死抠，以触感密闭为准。</p></span>
+          </div>
+        </div>
+      </div>
+    </section>
     <div class="inline-note">${icon("help")} 高音 4、5、6 展示常用叉口／泄孔指法；不同笛子的开孔与吹角可能需要微调。半孔音 4 也需要校准。先从低音 5、6、7 和中音 1 练起就很好。</div>`;
 }
 
@@ -94,6 +162,11 @@ export class FingeringPage {
     if (changedKeys.has("demo")) {
       this.updateDemoUI(state);
     }
+    if (changedKeys.has("metronome")) {
+      const running = state.metronome.running;
+      const label = this.container?.querySelector("#drill-metro-label");
+      if (label) label.textContent = running ? "停止节拍器" : "开启节拍静音动指";
+    }
   }
 
   updateFingeringView(state) {
@@ -134,6 +207,13 @@ export class FingeringPage {
     if (this.explorerFooterP) {
       this.explorerFooterP.textContent = `当前：${state.key} 调 · 筒音作 5。孔号从笛尾向吹孔数；低音 5 和中音 5 指法相同，气流不同。`;
     }
+
+    // 6. Update drill buttons active state
+    this.container.querySelectorAll("[data-action='drill-note']").forEach((btn) => {
+      const isActive = btn.dataset.note === note.id;
+      btn.classList.toggle("button-primary", isActive);
+      btn.classList.toggle("button-outline", !isActive);
+    });
   }
 
   updateDemoUI(state) {
@@ -237,6 +317,23 @@ export class FingeringPage {
       this.context.router.navigate("practice");
     } else if (action === "listen" || action === "blow-flute") {
       this.context.audioService.listen();
+    } else if (action === "drill-note") {
+      const noteId = button.dataset.note;
+      const note = NOTES.find((n) => n.id === noteId);
+      if (note) {
+        this.context.audioService.stopDemo();
+        this.context.audioService.engine.stopTones();
+        const state = this.context.store.getState();
+        this.context.store.setState({ customHoles: null, note });
+        this.context.audioService.engine.tone(frequencyFor(note, state.key, state.reference), 0.8);
+        this.context.shell.toast(`静音指法对照：${noteLabel(note)} · ${note.title}`);
+      }
+    } else if (action === "toggle-drill-metro") {
+      this.context.audioService.startMetronome();
+      const running = this.context.audioService.metronome.running;
+      const label = this.container?.querySelector("#drill-metro-label");
+      if (label) label.textContent = running ? "停止节拍器" : "开启节拍静音动指";
+      this.context.shell.toast(running ? "节拍器已开启，请跟着滴答声静音练习手指抬落！" : "节拍器已停止");
     }
   }
 }
