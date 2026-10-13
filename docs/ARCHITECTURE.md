@@ -32,7 +32,7 @@
 | :--- | :--- | :--- |
 | **接入与外壳层**<br/>(Shell Layer) | [`src/main.js`](../src/main.js)<br/>[`src/shell.js`](../src/shell.js) | • `main.js` 作为轻量装配器（约 100 行），负责全局单例组装与环境事件监听；<br/>• `AppShell` 维护侧边栏、顶栏面包屑/调性徽标、模态弹窗与 Toast 消息，常驻 DOM 零重绘。 |
 | **路由与组件层**<br/>(Routing & Views) | [`src/router.js`](../src/router.js)<br/>[`src/views/*.js`](../src/views/) | • `Router` 负责基于 URL Hash 驱动页面 `unmount -> mount` 生命周期；主动导航写入浏览器历史，后退/前进由 `hashchange` 与 `popstate` 统一处理，并在挂载后把焦点移到页面标题；<br/>• 7 大页面组件封装：`PracticePage`、`FingeringPage`、`TunerPage`、`LongTonePage`、`SongsPage`、`NotationPage`、`HistoryPage`。 |
-| **状态中心**<br/>(State Layer) | [`src/store.js`](../src/store.js) | • 单向数据中心，提供 `getState()`、`setState()`、`subscribe()`；<br/>• 基于状态 Diff 计算 `changedKeys`，触发增量响应；<br/>• 封装本地持久化 `saveSettings`、今日练习统计和首次练习目标/累计时长/恢复位置。 |
+| **状态中心**<br/>(State Layer) | [`src/store.js`](../src/store.js) | • 单向数据中心，提供 `getState()`、`setState()`、`subscribe()`；<br/>• 基于状态 Diff 计算 `changedKeys`，触发增量响应；<br/>• 封装本地持久化 `saveSettings`、今日练习统计和首次练习目标/累计时长/恢复位置；阶段四增加简谱学习进度、曲谱收藏/最近练习/恢复位置、趋势统计和版本化 JSON 导入导出。 |
 | **音频协同服务**<br/>(Audio Coordinator) | [`src/audio-service.js`](../src/audio-service.js) | • 封装音频设备生命周期、麦克风启停、世代计数器（防并发竞态）；请求后先经过约 1 秒环境噪声预检，再向页面发布 ready/denied/missing/busy/interrupted 等可解释状态；<br/>• 统筹管理合成音示范（单音/旋律序列）与节拍器；<br/>• 向当前活跃页面定向分发实时音频帧流（`onAudioFrame` / `onBeat`）。 |
 | **核心算法与底层底座**<br/>(Core DSP & Theory) | [`src/audio.js`](../src/audio.js)<br/>[`src/music.js`](../src/music.js)<br/>[`src/practice.js`](../src/practice.js) | • 150 Hz 气流高通滤波、自相关音高检测（YIN-like Autocorrelation）；<br/>• 5 帧移动中位数滤波与置信度时间积分桶（ConfidenceBucket）；<br/>• C/D/E/F/G 五调性竹笛十二平均律频率映射、筒音作 5 指法表；<br/>• Web Audio API、MediaDevices 硬件驱动与 LocalStorage。 |
 
@@ -176,3 +176,10 @@ flowchart LR
 - `LongTonePage` 管理三秒倒计时和取消代次，结束释放麦克风；由 `AudioService.stopMic()` 发起的结算不重复停止设备。图表首次创建 SVG，随后以约 120ms 更新路径、安全带和时间轴。`LongToneChallenge` 在断档后重置连续时长并返回吹奏阶段。
 - `Karaoke` 继续以 Web Audio 时钟调度声音，约 120ms 更新谱面和进度；50ms 定时器保留用于提前音频调度。当前小节、拍点、剩余时间及暂停/继续/结束使用固定操作区，移动谱面按可用宽度设置 viewBox。
 - 报告选择最近一份同曲成绩比较；速度、调性、校准、容差或完成情况不同时明确提示条件不同。Node 自动检查共 58 项通过；新增隔离浏览器检查及真实设备验收状态见产品路线文档。
+
+## 8. 阶段四增量实现（2026-10-13）
+
+- `FingeringPage` 和 `fluteDiagram` 将指法对照作为默认教学层，3D/完整笛身展示作为次级能力；图标由 `src/components/icons.js` 统一输出 SVG，并通过 `FINGERING_TERMS` 与 `fingeringLevel()` 提供术语解释和难度提示。
+- `NotationPage` 的示例音符全部渲染为可聚焦按钮，键盘 Enter / Space 与点击共用试听逻辑；`notationProgress` 通过 Store 持久化，知识卡片按已学状态增量刷新。
+- `SongsPage` 使用 `favoriteSongs`、`recentSongs`、`songProgress` 展示筛选、上次分数/完成度和恢复位置，试听、逐音练习、跟曲演奏分别进入对应流程。
+- `HistoryPage` 通过 `practiceInsights()` 计算 7/30 日趋势、连续天数和音符方向统计，并提供本机 JSON 数据管理。`AudioService` 在结束一次麦克风会话时保存偏低/偏高音符计数，导入使用 `validateImportedData()` 做版本和结构校验。
