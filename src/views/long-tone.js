@@ -29,6 +29,8 @@ export function longTonePage(state) {
       <div id="long-hole-container">${holeRow(note)}</div><p class="long-tip" id="long-tip">${note.tip}</p>
       <div class="long-beginner-banner" id="long-beginner-banner">${note.id === "2" || note.id === "1" ? '<span>⭐ <strong>新手发音首选音</strong>：按孔少、气流阻力小，极易吹响，是找准瓶口风门与腹式长音的最佳起点。</span>' : note.id === "low5" ? '<span>⚠️ <strong>全按低音 5 挑战</strong>：需 6 个孔完全密闭且气流极缓。若吹不响或发虚，请先切换至中音 2 或 1 练习！</span>' : '<span>💡 <strong>长音练习要诀</strong>：一口气均匀送出，风门保持稳定，尽量让音高平稳落在绿色安全带内。</span>'}</div>
       <div class="challenge-milestones">${[[3, "青铜"], [5, "白银"], [8, "黄金"]].map(([s, m]) => `<div data-medal="${s}"><b>${s}<small>秒</small></b><span>${m}</span></div>`).join("")}</div>
+      <div class="long-countdown" id="long-countdown" aria-live="assertive" hidden></div>
+      <div class="long-phases" aria-label="长音阶段"><span data-phase="inhale">吸气</span><span data-phase="blow">吹奏</span><span data-phase="hold">保持</span><span data-phase="release">收音</span></div>
       <div class="hold-readout"><strong id="hold-seconds">0.0<small>秒</small></strong><span id="hold-status">点击开始挑战，吹响后自动计时</span></div>
       <div class="hold-progress"><span id="hold-progress"></span></div>
       <div class="trace-heading"><span><i class="trace-key pitch"></i>音高走势</span><span><i class="trace-key volume"></i>音量走势</span><small>最近 12 秒 · 音量为相对 dBFS</small></div>
@@ -112,6 +114,8 @@ export class LongTonePage {
   }
 
   unmount() {
+    clearInterval(this.countdownTimer);
+    this.countdownTimer = null;
     this.finish();
     if (this.unsubscribe) {
       this.unsubscribe();
@@ -142,6 +146,7 @@ export class LongTonePage {
     this.longHoleContainer = this.container.querySelector("#long-hole-container");
     this.longTip = this.container.querySelector("#long-tip");
     this.longBeginnerBanner = this.container.querySelector("#long-beginner-banner");
+    this.longCountdown = this.container.querySelector("#long-countdown");
   }
 
   setText(el, text) {
@@ -193,7 +198,10 @@ export class LongTonePage {
     const state = this.context.store.getState();
     const challenge = state.challenge;
 
-    this.chart.innerHTML = renderBreathChart(challenge, state.tolerance);
+    if (this._paintChart !== false) {
+      this.chart.innerHTML = renderBreathChart(challenge, state.tolerance);
+      this._paintChart = false;
+    }
     if (this.holdSeconds) {
       this.holdSeconds.innerHTML = `${(challenge?.streak || 0).toFixed(1)}<small>秒</small>`;
     }
@@ -214,7 +222,9 @@ export class LongTonePage {
         ? `本次完成 · ${challenge.result.medal}`
         : state.longArmed
           ? challenge?.status === "running"
-            ? `最长连续 ${challenge.best.toFixed(1)} 秒 · 保持在绿色带内`
+            ? challenge.phase === "release"
+              ? challenge.resetReason
+              : `最长连续 ${challenge.best.toFixed(1)} 秒 · ${challenge.resetReason}`
             : "已就绪，吹响后自动计时"
           : "点击开始挑战，吹响后自动计时",
     );
@@ -238,12 +248,26 @@ export class LongTonePage {
         this.longResult.innerHTML = resultMarkup(challenge.result);
       }
     }
+    this.container?.querySelectorAll("[data-phase]").forEach((el) => el.classList.toggle("active", el.dataset.phase === (challenge?.phase || "inhale")));
+    if (this.longCountdown) {
+      this.longCountdown.hidden = !this.countdownValue;
+      this.longCountdown.textContent = this.countdownValue ? String(this.countdownValue) : "";
+    }
+    const medal = challenge?.best >= 8 ? 8 : challenge?.best >= 5 ? 8 : challenge?.best >= 3 ? 5 : 3;
+    const remaining = Math.max(0, medal - (challenge?.streak || 0));
+    if (state.longArmed && challenge?.status !== "finished" && this.holdStatus && remaining > 0 && challenge?.status === "running") {
+      this.holdStatus.textContent = `${challenge.best.toFixed(1)} 秒 · 距离下一枚${remaining.toFixed(1)} 秒 · ${challenge.resetReason}`;
+    }
   }
 
   async start() {
+    clearInterval(this.countdownTimer);
+    this.countdownValue = null;
     this.context.audioService.stopDemo();
     const state = this.context.store.getState();
     const challenge = new LongToneChallenge(state.tolerance);
+    this.lastChartPaint = 0;
+    this._paintChart = true;
     this.context.audioService.engine.smoother.reset();
 
     this.context.store.setState({
@@ -255,11 +279,31 @@ export class LongTonePage {
     if (state.mic === "off") {
       await this.context.audioService.startMic();
     }
+    if (this.context.store.getState().mic === "on") this.beginCountdown();
+  }
+
+  beginCountdown() {
+    if (this.countdownTimer || !this.context.store.getState().longArmed) return;
+    this.countdownValue = 3;
+    this.paint();
+    this.countdownTimer = setInterval(() => {
+      this.countdownValue -= 1;
+      if (this.countdownValue <= 0) {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+        this.countdownValue = null;
+      }
+      this.paint();
+    }, 1000);
   }
 
   finish() {
     const state = this.context.store.getState();
     if (!state.longArmed) return;
+
+    clearInterval(this.countdownTimer);
+    this.countdownTimer = null;
+    this.countdownValue = null;
 
     state.challenge?.finish();
     if (state.challenge?.best >= 3) {
@@ -281,6 +325,10 @@ export class LongTonePage {
   onAudioFrame({ frequency, rms }) {
     const state = this.context.store.getState();
     if (!state.longArmed || !state.challenge) return;
+    if (this.countdownValue) {
+      this.setFeedback("准备吹奏", `${this.countdownValue} 秒后开始计时，先吸气。`);
+      return;
+    }
 
     const now = performance.now();
     const cents = frequency
@@ -308,6 +356,8 @@ export class LongTonePage {
       }
       this.setFeedback("本次挑战已完成", "看看本次成绩，休息一下再挑战。");
     }
+    this._paintChart = now - (this.lastChartPaint || 0) >= 120 || state.challenge.status === "finished";
+    if (this._paintChart) this.lastChartPaint = now;
     this.paint();
   }
 

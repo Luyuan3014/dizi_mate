@@ -71,15 +71,23 @@ export class LongToneChallenge {
     this.streak = 0;
     this.best = 0;
     this.result = null;
+    this.phase = "inhale";
+    this.resetReason = "等待吸气后吹响";
   }
 
   update(now, cents, rms) {
     if (this.status === "finished") return;
     const voiced = Number.isFinite(cents);
-    if (this.status === "waiting" && !voiced) return;
+    if (this.status === "waiting" && !voiced) {
+      this.phase = "inhale";
+      this.resetReason = "吸气后，对准吹孔准备吹奏";
+      return;
+    }
     if (this.status === "waiting") {
       this.status = "running";
       this.started = now;
+      this.phase = "blow";
+      this.resetReason = "声音已收到，继续保持";
     }
     const dt = this.last === null ? 0 : Math.max(0, (now - this.last) / 1000);
     const good = voiced && Math.abs(cents) <= this.tolerance;
@@ -89,6 +97,16 @@ export class LongToneChallenge {
     this.previousGood = good;
     this.last = now;
     if (voiced) this.lastVoice = now;
+    if (!voiced) {
+      this.phase = "release";
+      this.resetReason = "收音中断，连续时间会重新计时";
+    } else if (!good) {
+      this.phase = "blow";
+      this.resetReason = cents < 0 ? "音高偏低，偏离后重新计时" : "音高偏高，偏离后重新计时";
+    } else if (this.previousGood && this.streak > 0) {
+      this.phase = "hold";
+      this.resetReason = "保持在绿色带内";
+    }
     this.samples.push({ time: (now - this.started) / 1000, cents: voiced ? cents : null, rms });
     if (this.best >= 8 || now - this.lastVoice >= 600 || now - this.started >= 30000) this.finish();
   }
@@ -96,6 +114,7 @@ export class LongToneChallenge {
   finish() {
     if (this.status !== "running") return null;
     this.status = "finished";
+    this.phase = "release";
     // The release/silence used to end a take is not part of the held note.
     const samples = this.samples.slice();
     while (samples.length && samples.at(-1).cents === null) samples.pop();
