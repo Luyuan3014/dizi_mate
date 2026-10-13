@@ -379,6 +379,11 @@ export class LongTonePage {
           frequencyFor(state.longNote, state.key, state.reference),
         )
       : null;
+    if (cents !== null && Math.abs(cents) > state.tolerance) {
+      const side = cents < 0 ? "low" : "high";
+      const directions = state.sessionDirections || (state.sessionDirections = { low: {}, high: {} });
+      directions[side][state.longNote.id] = (directions[side][state.longNote.id] || 0) + 1;
+    }
 
     state.challenge.update(now, cents, rms);
 

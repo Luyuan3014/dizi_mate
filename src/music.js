@@ -130,6 +130,19 @@ export const NOTES = [
 
 export const noteLabel = (note) => `${note.low ? "低音" : note.high ? "高音" : "中音"} ${note.number}`;
 
+// A compact vocabulary keeps the fingering page useful to a first-time player.
+export const FINGERING_TERMS = [
+  { term: "半孔", plain: "只盖住音孔的一半，用来微调音高；先听参考音再慢慢移动手指。" },
+  { term: "急吹", plain: "缩小风门、提高气流速度来吹高音，不是用力顶气。" },
+  { term: "叉口", plain: "中间的孔盖住、两端的孔打开的组合指法，常见于高音区。" },
+  { term: "泄孔", plain: "打开一个小孔帮助泛音跳到高音，手指动作要轻，气流要集中。" },
+  { term: "风门", plain: "嘴唇之间的出气缝隙；风门越小，气流越集中，越容易进入高音区。" },
+];
+
+export function fingeringLevel(note) {
+  return note?.high || note?.overblow || note?.id === "4" ? "advanced" : "beginner";
+}
+
 export const LESSONS = [
   {
     id: "breath",
@@ -361,9 +374,22 @@ export function readSaved(storage) {
               at: s.at,
               seconds: Math.min(s.seconds, 86400),
               notes: s.notes.filter((id) => NOTES.some((n) => n.id === id)),
+              ...(Array.isArray(s.lowNotes) ? { lowNotes: s.lowNotes.filter((id) => NOTES.some((n) => n.id === id)) } : {}),
+              ...(Array.isArray(s.highNotes) ? { highNotes: s.highNotes.filter((id) => NOTES.some((n) => n.id === id)) } : {}),
             }))
             .slice(-100)
         : [],
+      ...(Array.isArray(saved.notationProgress) ? { notationProgress: saved.notationProgress.filter((id) => typeof id === "string").slice(0, 100) } : {}),
+      ...(Array.isArray(saved.favoriteSongs) ? { favoriteSongs: saved.favoriteSongs.filter((id) => typeof id === "string").slice(0, 100) } : {}),
+      ...(Array.isArray(saved.recentSongs) ? { recentSongs: saved.recentSongs.filter((id) => typeof id === "string").slice(0, 20) } : {}),
+      ...(saved.songProgress && typeof saved.songProgress === "object" && !Array.isArray(saved.songProgress)
+        ? { songProgress: Object.fromEntries(Object.entries(saved.songProgress).filter(([id, value]) => typeof id === "string" && value && typeof value === "object").slice(0, 50).map(([id, value]) => [id, {
+          index: Number.isInteger(value.index) && value.index >= 0 ? value.index : 0,
+          completion: Number.isFinite(value.completion) ? Math.max(0, Math.min(100, value.completion)) : 0,
+          score: Number.isFinite(value.score) ? Math.max(0, Math.min(100, value.score)) : null,
+          lastAt: Number.isFinite(value.lastAt) ? value.lastAt : 0,
+        }])) }
+        : {}),
     };
     if ([3, 5, 0].includes(saved.practiceTargetMinutes)) result.practiceTargetMinutes = saved.practiceTargetMinutes;
     if (Number.isFinite(saved.practiceElapsedSeconds) && saved.practiceElapsedSeconds >= 0) result.practiceElapsedSeconds = Math.min(saved.practiceElapsedSeconds, 86400);

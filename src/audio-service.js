@@ -114,7 +114,11 @@ export class AudioService {
         (performance.now() - state.sessionStarted) / 1000,
       );
       if (seconds >= 1) {
-        this.store.addSession(seconds, state.sessionNotes);
+        const directions = state.sessionDirections || { low: {}, high: {} };
+        this.store.addSession(seconds, state.sessionNotes, {
+          lowNotes: Object.entries(directions.low || {}).flatMap(([id, count]) => Array(Math.min(20, count)).fill(id)),
+          highNotes: Object.entries(directions.high || {}).flatMap(([id, count]) => Array(Math.min(20, count)).fill(id)),
+        });
         this.store.setState({
           practiceElapsedSeconds: (state.practiceElapsedSeconds || 0) + seconds,
           practiceResume: state.lesson ? { lessonId: state.lesson.id, index: state.index || 0 } : state.practiceResume,
@@ -131,6 +135,7 @@ export class AudioService {
       micNoise: "unknown",
       sessionStarted: 0,
       sessionNotes: new Set(),
+      sessionDirections: { low: {}, high: {} },
     });
   }
 

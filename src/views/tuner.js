@@ -187,6 +187,11 @@ export class TunerPage {
     const targetNote = this.mode === "target" ? NOTES.find((n) => n.id === this.targetNoteId) || note : note;
     const target = frequencyFor(targetNote, state.key, state.reference);
     const cents = centsBetween(frequency, target);
+    if (Math.abs(cents) > state.tolerance && state.mic === "on") {
+      const side = cents < 0 ? "low" : "high";
+      const directions = state.sessionDirections || (state.sessionDirections = { low: {}, high: {} });
+      directions[side][targetNote.id] = (directions[side][targetNote.id] || 0) + 1;
+    }
     const signed = (n) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}`;
 
     this.needle.hidden = false;
