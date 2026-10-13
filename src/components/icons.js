@@ -26,6 +26,10 @@ const paths = {
   headphone:
     '<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="12" width="4" height="8" rx="2"/><rect x="17" y="12" width="4" height="8" rx="2"/>',
   reset: '<path d="M3 10a9 9 0 1 1 1 7M3 3v7h7"/>',
+  rotate: '<path d="M4 8a8 8 0 1 1 1 8"/><path d="M4 3v5h5"/>',
+  wood: '<path d="M4 7c3-3 13-3 16 0v10c-3 3-13 3-16 0Z"/><path d="M7 9c2 2 3 4 0 6m5-6c2 2 3 4 0 6m5-6c2 2 3 4 0 6"/>',
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>',
+  expand: '<path d="M8 3H3v5m13-5h5v5M8 21H3v-5m18 0v5h-5"/>',
 };
 export const icon = (name, cls = "") =>
   `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.music}</svg>`;

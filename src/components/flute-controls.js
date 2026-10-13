@@ -1,4 +1,5 @@
 import { FLUTE_MODELS, clampZoom, createFluteViewer, normalizeAngle } from "./flute-viewer.js";
+import { icon } from "./icons.js";
 
 export const fluteState = {
   rotateMode: false,
@@ -70,11 +71,11 @@ export function mountFlute(root) {
     const toggle = container.querySelector('[data-flute-action="toggle-3d"]');
     toggle.classList.toggle("active", fluteState.rotateMode);
     toggle.setAttribute("aria-pressed", String(fluteState.rotateMode));
-    toggle.innerHTML = `<span class="icon">↻</span><span>${fluteState.rotateMode ? "退出旋转" : "自由旋转展示"}</span>`;
+    toggle.innerHTML = `${icon("rotate")}<span>${fluteState.rotateMode ? "退出旋转" : "自由旋转展示"}</span>`;
     const spin = container.querySelector('[data-flute-action="toggle-spin"]');
     spin.classList.toggle("active", fluteState.autoSpin);
     spin.setAttribute("aria-pressed", String(fluteState.autoSpin));
-    spin.textContent = fluteState.autoSpin ? "⏸ 暂停自转" : "▶ 自动巡航";
+    spin.innerHTML = `${icon(fluteState.autoSpin ? "pause" : "play")}<span>${fluteState.autoSpin ? "暂停自转" : "自动巡航"}</span>`;
     spin.disabled = !isGallery;
     for (const button of container.querySelectorAll('[data-flute-action="zoom-in"], [data-flute-action="zoom-out"]')) {
       button.disabled = !isGallery;
@@ -82,7 +83,7 @@ export function mountFlute(root) {
     const view = container.querySelector('[data-flute-action="toggle-view-mode"]');
     view.classList.toggle("active", isGallery);
     view.setAttribute("aria-pressed", String(isGallery));
-    view.textContent = isGallery ? "🎯 切回指法对照" : "🔍 查看完整笛身";
+    view.innerHTML = `${icon(isGallery ? "hand" : "expand")}<span>${isGallery ? "切回指法对照" : "查看完整笛身"}</span>`;
     const model = FLUTE_MODELS[fluteState.model];
     container.querySelector(".flute-badge").textContent = model.name;
     container.querySelector(".flute-tip-hint").textContent = isGallery

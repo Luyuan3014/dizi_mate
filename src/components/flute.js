@@ -1,5 +1,6 @@
 import { FLUTE_MODELS } from "./flute-viewer.js";
 import { fluteState, photoTube, shouldSuppressFluteClick } from "./flute-controls.js";
+import { icon } from "./icons.js";
 export { fluteState, mountFlute, unmountFlute } from "./flute-controls.js";
 
 export function fluteDiagram(note, state = {}) {
@@ -21,10 +22,10 @@ export function fluteDiagram(note, state = {}) {
       </div>
       <div class="flute-toolbar-btns">
         <button type="button" class="flute-tool-btn ${is3D ? "active" : ""}" data-flute-action="toggle-3d" aria-pressed="${is3D}" title="开启/退出3D自由旋转">
-          <span class="icon">🔄</span><span>${is3D ? "退出旋转" : "自由旋转展示"}</span>
+          ${icon("rotate")}<span>${is3D ? "退出旋转" : "自由旋转展示"}</span>
         </button>
         <button type="button" class="flute-tool-btn" data-flute-action="toggle-model" title="切换笛身款式">
-          <span class="icon">🪵</span><span>切换笛身</span>
+          ${icon("wood")}<span>切换笛身</span>
         </button>
       </div>
     </div>
@@ -33,13 +34,13 @@ export function fluteDiagram(note, state = {}) {
     <div class="flute-3d-panel ${is3D ? "show" : ""}">
       <div class="flute-3d-controls">
         <button type="button" class="flute-ctrl-btn ${fluteState.autoSpin ? "active" : ""}" data-flute-action="toggle-spin" id="flute-spin-btn">
-          ${fluteState.autoSpin ? "⏸ 暂停自转" : "▶ 自动巡航"}
+          ${icon(fluteState.autoSpin ? "pause" : "play")}<span>${fluteState.autoSpin ? "暂停自转" : "自动巡航"}</span>
         </button>
-        <button type="button" class="flute-ctrl-btn" data-flute-action="reset-view">↺ 正视还原</button>
-        <button type="button" class="flute-ctrl-btn" data-flute-action="set-preset" data-preset="perspective">📐 45°立体</button>
-        <button type="button" class="flute-ctrl-btn" data-flute-action="set-preset" data-preset="playing">🎵 演奏姿态</button>
+        <button type="button" class="flute-ctrl-btn" data-flute-action="reset-view">${icon("reset")} 正视还原</button>
+        <button type="button" class="flute-ctrl-btn" data-flute-action="set-preset" data-preset="perspective">${icon("target")} 45°立体</button>
+        <button type="button" class="flute-ctrl-btn" data-flute-action="set-preset" data-preset="playing">${icon("music")} 演奏姿态</button>
         <button type="button" class="flute-ctrl-btn ${fluteState.viewMode === "full" ? "active" : ""}" data-flute-action="toggle-view-mode" id="flute-view-btn">
-          ${fluteState.viewMode === "full" ? "🎯 切回指法对照" : "🔍 查看完整笛身"}
+          ${fluteState.viewMode === "full" ? `${icon("hand")} 切回指法对照` : `${icon("expand")} 查看完整笛身`}
         </button>
         <button type="button" class="flute-ctrl-btn" data-flute-action="zoom-out" aria-label="缩小笛子">−</button>
         <button type="button" class="flute-ctrl-btn" data-flute-action="zoom-in" aria-label="放大笛子">＋</button>

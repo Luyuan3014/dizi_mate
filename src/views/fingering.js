@@ -5,12 +5,15 @@ import {
   noteLabel,
   noteForHoles,
   LESSONS,
+  FINGERING_TERMS,
+  fingeringLevel,
 } from "../music.js";
 import { icon } from "../components/icons.js";
 import { hero, noteMarkup } from "../components/shared.js";
 import { fluteDiagram, getFluteClickTarget, mountFlute, unmountFlute } from "../components/flute.js";
 
 export function fingeringPage(state) {
+  state = { note: NOTES[0], key: "E", reference: 440, demo: false, metronome: { running: false }, ...state };
   return `${hero(
     "先用手指认识竹笛",
     "六个音孔，<span>慢慢熟悉。</span>",
@@ -19,7 +22,7 @@ export function fingeringPage(state) {
     <section class="card explorer-card">
       <div class="explorer-notes">${NOTES.map(
         (note) =>
-          `<button class="explorer-note ${state.note.id === note.id ? "active" : ""}" data-action="explore" data-note="${note.id}" aria-label="${noteLabel(note)} · ${note.solfege}" aria-pressed="${state.note.id === note.id}">${noteMarkup(note)}<small>${note.solfege}</small></button>`,
+          `<button class="explorer-note ${state.note.id === note.id ? "active" : ""}" data-action="explore" data-note="${note.id}" aria-label="${noteLabel(note)} · ${note.solfege} · ${fingeringLevel(note) === "beginner" ? "适合初学" : "需要进阶"}" aria-pressed="${state.note.id === note.id}">${noteMarkup(note)}<small>${note.solfege}</small><em>${fingeringLevel(note) === "beginner" ? "适合初学" : "需要进阶"}</em></button>`,
       ).join("")}</div>
       <div class="explorer-target">
         <div>
@@ -28,8 +31,10 @@ export function fingeringPage(state) {
         </div>
         <button class="button button-outline listen-button" data-action="listen">${icon(state.demo ? "pause" : "volume")}<span>${state.demo ? "停止示范" : "听参考音"}</span></button>
       </div>
+      <div class="fingering-focus-label">${icon("hand")} <strong>指法对照优先</strong><span>先看六孔开合，再按需要打开完整笛身展示</span></div>
       ${fluteDiagram(state.note, state)}
       <div class="breath-tip">${icon("leaf")}<p>${state.note.tip}</p></div>
+      <section class="fingering-glossary" aria-label="指法术语解释"><div class="section-heading"><h3>把术语说简单</h3><span>点击后再回来看指法</span></div><div class="term-grid">${FINGERING_TERMS.map(({ term, plain }) => `<details><summary>${term}</summary><p>${plain}</p></details>`).join("")}</div></section>
       <div class="explorer-footer">
         <p>当前：${state.key} 调 · 筒音作 5。孔号从笛尾向吹孔数；低音 5 和中音 5 指法相同，气流不同。</p>
         <button class="button button-primary" data-action="practice-note">练练这个音 ${icon("arrow")}</button>
