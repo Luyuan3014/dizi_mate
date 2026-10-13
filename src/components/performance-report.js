@@ -13,7 +13,8 @@ export function reportSummary(report) {
 }
 
 function comparisonMarkup(report, previous) {
-  if (!previous || previous.score === null || report.score === null) return "";
+  if (!previous || previous.songId !== report.songId || previous.score === null || report.score === null) return "";
+  if (["bpm", "key", "reference", "tolerance", "completed"].some((key) => report[key] !== previous[key])) return `<p class="report-comparison">与上次相比：本次 ${report.score} 分，上次 ${previous.score} 分。速度、调性、校准、容差或完成情况不同，建议使用相同条件再比较。</p>`;
   const delta = report.score - previous.score;
   const direction = delta === 0 ? "与上次持平" : `${delta > 0 ? "比上次提高" : "比上次低"} ${Math.abs(delta)} 分`;
   return `<p class="report-comparison">${direction} · 上次 ${previous.score} 分${report.score >= previous.score ? "，继续保持这组速度。" : "，建议先回到慢速练习。"}</p>`;

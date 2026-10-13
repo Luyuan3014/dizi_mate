@@ -108,6 +108,17 @@ test("long tone discontinuities cannot create medals and long takes are bounded"
   assert.equal(out.result.medal,'继续加油');
 });
 
+test("long tone gaps restart the hold phase instead of reporting a hold", () => {
+  const challenge = new LongToneChallenge();
+  challenge.update(0, 0, 0.1);
+  challenge.update(50, 0, 0.1);
+  assert.equal(challenge.phase, "hold");
+  challenge.update(1000, 0, 0.1);
+  assert.equal(challenge.streak, 0);
+  assert.equal(challenge.phase, "blow");
+  assert.match(challenge.resetReason, /重新计时/);
+});
+
 test("stability score penalizes both pitch jitter and volume variation", () => {
   const stable = Array.from({length:40},()=>({cents:0,rms:.1}));
   const pitchy = stable.map((s,i)=>({...s,cents:i%2?30:-30}));

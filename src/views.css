@@ -10,6 +10,8 @@
 .companion-modes button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 3px; border-radius: 8px; font-size: 12px; color: #c8d5be; }
 .companion-modes .icon { width: 15px; height: 15px; }
 .companion-modes [aria-pressed="true"] { background: #dfeace; color: #304b39; font-weight: 600; }
+.practice-modes { max-width: 430px; margin: 0 0 24px; background: #edf3e6; border-color: var(--line); }
+.practice-modes button { min-height: 44px; color: #405937; }
 #karaoke-panel { position: relative; text-align: left; }
 .karaoke-intro { padding: 24px 0 21px; }
 .karaoke-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #c0d3a7; }
@@ -35,7 +37,9 @@
 .karaoke-secondary-actions { display: flex; gap: 7px; }
 .karaoke-secondary-actions .button { padding: 10px 5px; font-size: 11px; }
 .karaoke-status { color: #d2dfc7; font-size: 11px; text-align: center; line-height: 1.8; min-height: 40px; margin: 15px 0 6px; }
-.karaoke-stage { margin-top: 26px; padding: 28px; scroll-margin-top: 20px; overflow: hidden; }
+.karaoke-stage { margin-top: 26px; padding: 28px; scroll-margin-top: 20px; }
+.karaoke-session-controls { position: sticky; top: 12px; z-index: 4; background: #fffefa; padding: 12px; margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; }
+.karaoke-position { display: flex; justify-content: space-between; gap: 8px; color: #405937; font-size: 13px; font-variant-numeric: tabular-nums; }
 .karaoke-stage-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
 .karaoke-stage-heading .section-kicker { font-size: 10px; color: #7c936c; letter-spacing: 1.5px; }
 .karaoke-stage h2 { font-size: 25px; font-weight: 600; margin-top: 7px; }
@@ -48,6 +52,7 @@
 .karaoke-transport { display: flex; gap: 10px; justify-content: flex-end; }
 .karaoke-transport:not(:empty) { margin-top: 16px; }
 .karaoke-transport .button { font-size: 12px; padding: 9px 13px; }
+.karaoke-transport .button { min-height: 44px; }
 #karaoke-target { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #718366; }
 #karaoke-target .notation { font-size: 34px; color: #527943; }
 #karaoke-target small { font-size: 11px; }
@@ -132,7 +137,10 @@
   .karaoke-current { flex-wrap: wrap; padding: 12px; gap: 8px; }
   #karaoke-target { flex: 1; }
   #karaoke-live-feedback { order: 3; width: 100%; text-align: center; font-size: 11px; }
-  .karaoke-roll svg { width: 730px; max-width: none; }
+  .karaoke-roll svg { width: 100%; height: 270px; max-width: 100%; }
+  .karaoke-transport { flex-wrap: wrap; justify-content: stretch; }
+  .karaoke-transport .button { flex: 1; }
+  .karaoke-session-controls { top: 8px; }
   .karaoke-chart-key { gap: 10px; }
   .karaoke-chart-key span:last-child { margin-left: 0; width: 100%; }
   .karaoke-phrase { font-size: 14px; letter-spacing: 1px; }
@@ -304,6 +312,8 @@
 .tuner-target-select select { border: 1px solid #ced7c2; border-radius: 7px; background: #fff; padding: 8px; color: #405937; font: inherit; }
 .tuner-dial { margin: 0 auto; max-width: 600px; text-align: center; padding: 18px 36px 26px; background: #f6f7f0; border-radius: 130px 130px 20px 20px; border: 1px solid #e1e6d8; transition: background .15s; }
 .tuner-dial.in-tune { background: #eaf3e2; border-color: #9eb78c; }
+.tuner-dial.pitch-low, .tuner-dial.pitch-high { border-color: #af8350; }
+#tuner-status { color: #405937; font-size: 15px; min-height: 24px; margin-top: 12px; }
 .tuner-note { font-size: 104px; line-height: 1.3; min-height: 146px; padding-top: 18px; color: #42623b; }
 .tuner-note .note-dot { width: 7px; height: 7px; left: calc(50% - 3.5px); }
 .tuner-dial > strong { font-size: 20px; }

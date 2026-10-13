@@ -10,6 +10,8 @@ import { Router } from "../src/router.js";
 import { AudioService } from "../src/audio-service.js";
 import { PracticePage } from "../src/views/practice.js";
 import { HistoryPage } from "../src/views/history.js";
+import { TunerPage } from "../src/views/tuner.js";
+import { LongTonePage } from "../src/views/long-tone.js";
 import { NOTES, frequencyFor } from "../src/music.js";
 import { readReports } from "../src/song-performance.js";
 const memory = new Map();
@@ -26,7 +28,7 @@ const clock={currentTime:0,state:"running"};
 service.engine={context:clock,smoother:{reset(){}},ready:async()=>clock,
   start:async()=>{if(deny){deny=false;throw new DOMException("test denial","NotAllowedError");}if(delayed){delayed=false;return new Promise((resolve)=>{resolveStart=resolve;});}return true;},
   stop(){},stopTones(){},stopClicks(){},scheduleTone(){},click(){},tone:async()=>{}};
-const router=new Router({container,context,routes:{practice:(ctx)=>new PracticePage(ctx),history:(ctx)=>new HistoryPage(ctx)},
+const router=new Router({container,context,routes:{practice:(ctx)=>new PracticePage(ctx),history:(ctx)=>new HistoryPage(ctx),tuner:(ctx)=>new TunerPage(ctx),"long-tone":(ctx)=>new LongTonePage(ctx)},
   onBeforeNavigate:(_,id)=>{service.stopAll();store.setState({page:id});},onAfterNavigate:(id)=>shell.updateNav(id)});
 context.router=router;
 router.init();
@@ -40,6 +42,7 @@ await k.start();check(k.status==="countdown"&&store.getState().mic==="on","授�
 clock.currentTime=k.startTime+2;k.tick();
 const n=k.performance.targetAt(2000);service.handleAudioFrame({frequency:frequencyFor(NOTES.find((note)=>note.id===n.id)),rms:.1});
 check(k.status==="running"&&container.querySelector("#karaoke-frequency").textContent.includes("Hz"),"实时音高反馈");
+check(container.querySelector("#karaoke-bar").textContent.includes("小节")&&container.querySelector("#karaoke-remaining").textContent.includes("剩余"),"小节与剩余时间");
 k.pause();const offset=k.offset;check(k.status==="paused"&&store.getState().mic==="off","暂停释放麦克风");
 clock.currentTime+=30;await k.start();k.pause();check(k.offset===offset,"继续倒数时暂停不丢进度");
 await k.start();clock.currentTime=k.startTime+offset/1000+.05;k.tick();k.finish("ended");
@@ -51,15 +54,33 @@ delayed=true;const pending=k.start();k.cancel();resolveStart(true);await pending
 await k.start();clock.currentTime=k.startTime+3;k.tick();service.stopAll();check(k.report.reason==="interrupted"&&store.getState().mic==="off","后台或离开时保存中断报告");
 await k.preview();service.stopAll();check(k.status!=="preview","离开时取消试听与调度");
 await k.start();const take=k.performance;
+const previous=store.getState().reports.at(-1);
 for(let time=0;time<take.timeline.duration;time+=50){clock.currentTime=k.startTime+time/1000;const note=take.targetAt(time);service.handleAudioFrame({frequency:frequencyFor(NOTES.find((n)=>n.id===note.id)),rms:.1});if(time%250===0)k.tick();}
 clock.currentTime=k.startTime+take.timeline.duration/1000+.001;k.tick();
 check(k.report.completed&&store.getState().mic==="off"&&k.report.score>=85,"整曲结束自动报告");
 check(container.querySelector(".performance-report")&&k.bestCombo>10,"报告与连击呈现");
+check(k.previousReport===previous,"对比最近一份同曲报告");
 check(readReports(localStorage).length===store.getState().reports.length,"报告可持久化恢复");
 router.navigate("history");check(container.querySelectorAll(".report-history-item").length===store.getState().reports.length,"练习记录可回看报告");
+router.navigate("tuner");const tuner=router.getCurrentPage();tuner.setMode("target");
+check(container.querySelector("#tuner-target").textContent.includes("中音 2")&&container.querySelector("#tuner-fingering").textContent.includes("抬起左手无名指"),"目标音未吹响时显示频率和指法");
+tuner.paint(frequencyFor(NOTES.find((n)=>n.id==="2"))*2**(-80/1200));
+check(container.querySelector("#tuner-status").textContent.includes("偏低"),"偏低文字与图形反馈");
+tuner.paint(null);check(!container.querySelector("#tuner-dial").classList.contains("pitch-low"),"静音清空音高状态");
+router.navigate("long-tone");const long=router.getCurrentPage();await long.start();
+check(long.countdownValue===3,"长音三秒倒数");
+const path=container.querySelector("#breath-pitch-path");
+await new Promise((resolve)=>setTimeout(resolve,3100));
+check(!long.countdownValue&&!long.countdownTimer,"倒数结束释放定时器");
+const challenge=store.getState().challenge;challenge.update(0,0,.1);challenge.update(100,0,.1);long._paintChart=true;long.paint();
+check(container.querySelector("#breath-pitch-path")===path&&path.getAttribute("d").includes("L"),"长音图表复用节点");
+challenge.update(150,60,.1);long.paint();check(container.querySelector("#hold-status").textContent.includes("重新计时"),"偏离解释重计原因");
+challenge.best=5.1;challenge.streak=1;long.paint();check(container.querySelector("#hold-status").textContent.includes("黄金还差 7.0"),"白银后提示黄金剩余时间");
+long.finish();check(store.getState().mic==="off"&&!store.getState().longArmed,"长音结算释放麦克风");
 router.navigate("practice");router.getCurrentPage().karaoke.setMode("song");
 // Keep the completed synthesized report visible for visual and export checks.
 const shown=router.getCurrentPage().karaoke;shown.report=store.getState().reports.at(-1);shown.status="finished";shown.render();
+shown.updateProgress(shown.report.elapsed);shown.drawRoll(shown.report.elapsed,true);
 document.querySelector("#test-result").textContent=`通过 ${messages.length} 项：${messages.join(" · ")}`;
 }catch(error){document.querySelector("#test-result").textContent=`失败：${error.message}`;console.error(error);}
 };

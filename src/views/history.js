@@ -5,7 +5,7 @@ import { calculateTodayStats } from "../store.js";
 import { performanceReport, exportPerformanceReport, escapeHTML } from "../components/performance-report.js";
 
 export function renderReports(reports = []) {
-  if (!reports.length) return `<div class="report-history-empty">还没有演奏报告。在今日陪练的「实时陪练 → 跟曲演奏」中吹一首，报告就会保存在这里。</div>`;
+  if (!reports.length) return `<div class="report-history-empty">还没有演奏报告。在今日陪练顶部选择「跟曲演奏」吹一首，报告就会保存在这里。</div>`;
   const ordered = reports.slice().reverse();
   return ordered.map((r, index) => {
     const previous = ordered.slice(index + 1).find((candidate) => candidate.songId === r.songId) || null;

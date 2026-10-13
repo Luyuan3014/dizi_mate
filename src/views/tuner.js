@@ -33,6 +33,7 @@ export function tunerPage(state) {
         <div class="tuner-readings"><span id="tuner-hz">— Hz</span><span id="tuner-delta">— Hz 偏差</span><span id="tuner-cents">— 音分</span></div>
         <div class="tuner-scale"><span class="pitch-safe-zone" style="left:${50 - state.tolerance / 2}%;width:${state.tolerance}%"></span><span class="pitch-center"></span><i id="tuner-needle" hidden></i></div>
         <div class="pitch-scale-labels"><span>−100 音分</span><span>准确</span><span>+100 音分</span></div>
+        <p id="tuner-status" role="status" aria-live="polite">准备好后，吹一声</p>
         <p id="tuner-target">吹响后显示最近音符的目标频率</p>
       </div>
       <div class="tuner-notes">${groups.map(([label, notes]) => `<section class="tuner-note-group"><h3>${label}</h3><div>${notes.map((n) => `<span data-tuner-note="${n.id}">${noteMarkup(n)}</span>`).join("")}</div></section>`).join("")}</div>
@@ -94,6 +95,7 @@ export class TunerPage {
     this.tunerDelta = this.container.querySelector("#tuner-delta");
     this.tunerCents = this.container.querySelector("#tuner-cents");
     this.tunerTarget = this.container.querySelector("#tuner-target");
+    this.tunerStatus = this.container.querySelector("#tuner-status");
     this.tunerFingering = this.container.querySelector("#tuner-fingering");
     this.feedbackTitle = this.container.querySelector("#feedback-title");
     this.feedbackCopy = this.container.querySelector("#feedback-copy");
@@ -141,6 +143,7 @@ export class TunerPage {
         safeZone.style.width = `${state.tolerance}%`;
       }
     }
+    if (["key", "reference", "tolerance"].some((key) => changedKeys.has(key))) this.paint(this.lastFrequency);
   }
 
   updateMicUI() {
@@ -152,6 +155,7 @@ export class TunerPage {
 
   paint(frequency) {
     if (!this.needle) return;
+    this.lastFrequency = frequency;
     const state = this.context.store.getState();
 
     if (!frequency) {
@@ -165,12 +169,17 @@ export class TunerPage {
       this.setText(this.tunerHz, "— Hz");
       this.setText(this.tunerDelta, "— Hz 偏差");
       this.setText(this.tunerCents, "— 音分");
-      this.setText(this.tunerTarget, "吹响后显示最近音符的目标频率");
+      const targetNote = NOTES.find((n) => n.id === this.targetNoteId);
+      this.setText(this.tunerTarget, this.mode === "target"
+        ? `目标 ${noteLabel(targetNote)} · ${pitchNameFor(targetNote, state.key)} · ${frequencyFor(targetNote, state.key, state.reference).toFixed(1)} Hz`
+        : "吹响后显示最近音符的目标频率");
+      this.setText(this.tunerStatus, this.mode === "target" ? `准备吹 ${noteLabel(targetNote)}` : "准备好后，吹一声");
       this.setText(
         this.tunerFingering,
         "识别到音符后，这里同步显示对应孔位和气息要领。",
       );
-      this.dial?.classList.remove("in-tune");
+      if (this.mode === "target" && this.tunerFingering) this.tunerFingering.innerHTML = `<h3>${noteLabel(targetNote)} · ${targetNote.title}</h3>${holeRow(targetNote)}<p>${targetNote.tip}</p>`;
+      this.dial?.classList.remove("in-tune", "pitch-low", "pitch-high");
       return;
     }
 
@@ -192,7 +201,6 @@ export class TunerPage {
         this.tunerFingering.innerHTML = `<h3>${noteLabel(note)} · ${note.title}</h3>${holeRow(note)}<p>${note.tip}</p>`;
       }
       this.tunerNoteId = note.id;
-      this.container?.querySelector(`[data-tuner-note="${note.id}"]`)?.scrollIntoView?.({ block: "nearest", inline: "center" });
     }
 
     this.setText(
@@ -211,6 +219,7 @@ export class TunerPage {
     this.dial?.classList.toggle("pitch-low", cents < -state.tolerance);
     this.dial?.classList.toggle("pitch-high", cents > state.tolerance);
     this.needle.style.left = `${50 + Math.max(-49, Math.min(49, cents / 2))}%`;
+    this.setText(this.tunerStatus, Math.abs(cents) <= state.tolerance ? "● 准确 · 继续保持" : cents < 0 ? "← 偏低 · 集中气流，检查漏孔" : "偏高 → 放松气速");
 
     const feedback = describePitch(cents, state.tolerance);
     this.setFeedback(feedback.title, feedback.detail);

@@ -34,6 +34,7 @@ export function practicePage(state, stats) {
     "不用先懂乐理。看一眼指法，听一听，再试着吹出你的声音。",
     `<div class="heading-tools"><div class="practice-goal" aria-label="今日陪练目标"><span class="goal-label">今天练 ${targetMinutes ? `${targetMinutes} 分钟` : "自由练习"}</span><div class="goal-progress"><i style="width:${progress}%"></i></div><small id="practice-goal-time">已练 ${Math.floor(elapsed / 60)} 分 ${elapsed % 60} 秒${targetSeconds ? ` · ${progress}%` : ""}</small><div class="goal-options" role="group" aria-label="设置今日目标"><button data-action="target" data-minutes="3" class="${targetMinutes === 3 ? "selected" : ""}">3 分钟</button><button data-action="target" data-minutes="5" class="${targetMinutes === 5 ? "selected" : ""}">5 分钟</button><button data-action="target" data-minutes="0" class="${targetMinutes === 0 ? "selected" : ""}">自由</button></div></div>${metronomeView(state)}<div class="daily-stats"><div><strong>${Math.floor(stats.seconds / 60)}<small>分钟</small></strong><span>今日练习</span></div><div class="stats-line"></div><div><strong>${stats.notes}<small>个音</small></strong><span>今日吹准</span></div><span class="stats-sprout">${icon("leaf")}</span></div></div>`,
   )}
+    ${karaokeEntry()}
     <div class="practice-grid">
       <section class="practice-card card" aria-label="指法练习">
         <div class="card-top"><span class="section-kicker"><span class="tiny-dot"></span> 今日的小练习</span><span class="level-tag">${state.lesson.badge || `零基础 · 第 ${LESSONS.findIndex((lesson) => lesson.id === state.lesson.id) + 1} 步`}</span></div>
@@ -53,7 +54,7 @@ export function practicePage(state, stats) {
       </section>
       <aside class="companion-column">
         <section class="companion-card" aria-label="实时音高陪练"><div class="companion-top"><span>${icon("sparkle")} 实时陪练</span><span class="mic-state" id="mic-state"><i></i>等待开启</span></div>
-          ${karaokeEntry()}<div id="karaoke-panel" hidden></div><div id="free-companion">
+          <div id="karaoke-panel" hidden></div><div id="free-companion">
           <div class="listening-orb" id="listening-orb"><div class="orb-ring"></div><div class="orb-ring second"></div><span>${icon("mic")}</span><i class="orb-spark spark-one"></i><i class="orb-spark spark-two"></i></div>
           <h2 id="feedback-title" aria-live="polite" aria-atomic="true">准备好后，吹一声</h2><p class="feedback-copy" id="feedback-copy">参考音会先告诉你目标。</p><p class="feedback-reason" id="feedback-reason">先听参考音，再试着吹。</p><span class="feedback-state" id="feedback-state">等待声音</span>
           <div class="waveform" id="waveform" aria-hidden="true">${Array.from({ length: 35 }, (_, i) => `<i style="--wave:${8 + Math.sin(i * 1.1) ** 2 * (13 + Math.sin(i / 6) ** 2 * 21)}px;--delay:${i * -0.075}s"></i>`).join("")}</div>

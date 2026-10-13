@@ -4,7 +4,7 @@ import { createInitialState, createStore } from "../src/store.js";
 import { LESSONS, NOTES } from "../src/music.js";
 import { practicePage } from "../src/views/practice.js";
 import { fingeringPage } from "../src/views/fingering.js";
-import { longTonePage } from "../src/views/long-tone.js";
+import { longTonePage, renderBreathChart } from "../src/views/long-tone.js";
 import { tunerPage } from "../src/views/tuner.js";
 import { dialogView } from "../src/views/settings.js";
 import { practiceFeedback } from "../src/components/shared.js";
@@ -77,6 +77,13 @@ test("longTonePage renders beginner recommendations and banners", () => {
   assert.ok(markup.includes("long-countdown"));
   assert.ok(markup.includes('data-phase="inhale"'));
   assert.ok(markup.includes('data-phase="hold"'));
+});
+
+test("long-tone chart exposes reusable SVG paths", () => {
+  const markup = renderBreathChart({ samples: [{ time: 0, cents: 0, rms: 0.1 }] }, 35);
+  assert.match(markup, /id="breath-pitch-path"/);
+  assert.match(markup, /id="breath-volume-path"/);
+  assert.match(markup, /data-breath-safe-zone/);
 });
 
 test("tunerPage exposes target mode and pitch register groups", () => {

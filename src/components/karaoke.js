@@ -4,7 +4,7 @@ import { icon } from "./icons.js";
 import { noteMarkup } from "./shared.js";
 import { performanceReport, exportPerformanceReport } from "./performance-report.js";
 
-export const karaokeEntry = () => `<div class="companion-modes" role="group" aria-label="实时陪练模式"><button data-action="karaoke-free" aria-pressed="true">${icon("mic")} 自由练音</button><button data-action="karaoke-song" aria-pressed="false">${icon("music")} 跟曲演奏</button></div>`;
+export const karaokeEntry = () => `<div class="companion-modes practice-modes" role="group" aria-label="练习模式"><button data-action="karaoke-free" aria-pressed="true">${icon("mic")} 自由练音</button><button data-action="karaoke-song" aria-pressed="false">${icon("music")} 跟曲演奏</button></div>`;
 
 export class Karaoke {
   constructor(context, container) {
@@ -45,6 +45,7 @@ export class Karaoke {
     this.stage.hidden = mode !== "song";
     this.container.querySelectorAll(".companion-modes button").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.action === `karaoke-${mode}`)));
     this.render();
+    if (mode === "song") this.panel.querySelector("#karaoke-song-select")?.focus();
   }
 
   syncLesson() {
@@ -72,7 +73,7 @@ export class Karaoke {
       <p class="karaoke-status" id="karaoke-status" role="status">${this.status === "paused" ? "已暂停，麦克风已释放。继续时会重新倒数。" : this.status === "finished" ? "演奏已结束，向下查看报告。" : this.status === "requesting" ? "请在浏览器提示中允许使用麦克风。" : this.status === "preview" ? "正在试听合成参考旋律，不计演奏成绩。" : "4 拍倒数后开始 · 吹完自动出报告"}</p>
       <div class="privacy-note">${icon("shield")} 声音仅在本机分析，不录音、不上传</div>`;
     this.stage.innerHTML = `<section class="karaoke-stage card" aria-label="跟曲演奏台"><div class="karaoke-stage-heading"><div><span class="section-kicker">FOLLOW THE MELODY · 跟着旋律</span><h2>${this.song.title}<small>完整旋律</small></h2></div><div class="karaoke-live-stats"><span>当前连击 <b id="karaoke-combo">${this.combo}</b></span><span>最高连击 <b id="karaoke-best">${this.bestCombo}</b></span><span>时间 <b id="karaoke-time">0:00 / ${this.formatTime(duration)}</b></span></div></div>
-      <div class="karaoke-transport">${playing || this.status === "paused" ? `<button class="button button-outline" data-action="${playing ? "karaoke-pause" : "karaoke-start"}">${icon(playing ? "pause" : "play")} ${playing ? "暂停演奏" : "继续演奏"}</button><button class="button button-outline" data-action="karaoke-end">结束并生成报告</button>` : ""}</div>
+      <div class="karaoke-session-controls"><div class="karaoke-position"><span id="karaoke-bar">第 1 / ${Math.ceil(duration / (60000 / this.bpm * this.song.beats))} 小节 · 第 1 拍</span><span id="karaoke-remaining">剩余 ${this.formatTime(duration)}</span></div><div class="karaoke-transport">${playing || this.status === "paused" ? `<button class="button button-outline" data-action="${playing ? "karaoke-pause" : "karaoke-start"}">${icon(playing ? "pause" : "play")} ${playing ? "暂停演奏" : "继续演奏"}</button><button class="button button-outline" data-action="karaoke-end">结束并生成报告</button>` : ""}</div></div>
       <div class="karaoke-current"><div id="karaoke-target">准备吹奏 ${noteMarkup(NOTES.find((n) => n.id === this.song.notes[0].id))}</div><span id="karaoke-live-feedback" role="status">先试听，再跟着起拍线吹</span><div class="karaoke-pitch-readout">实际 <b id="karaoke-frequency">—</b><small id="karaoke-cents">等待声音</small></div></div>
       <div class="karaoke-roll" role="img" aria-label="滚动音高谱：绿色为目标音符，橙色为实际吹奏轨迹，竖线为当前起拍位置"><svg id="karaoke-roll-svg" viewBox="0 0 1000 270" aria-hidden="true"></svg><div class="karaoke-countdown" id="karaoke-countdown" hidden></div></div>
       <div class="karaoke-chart-key"><span><i class="target-key"></i>目标音符</span><span><i class="trace-key"></i>我的音高</span><span>竖线到达音符左端时起音</span></div>
@@ -127,8 +128,7 @@ export class Karaoke {
     if (this.status === "preview") {
       const elapsed = Math.max(0, (audioTime-this.previewStart)*1000);
       const timeline = songTimeline(this.song, this.bpm);
-      this.drawRoll(elapsed);
-      this.updateProgress(elapsed);
+      if (this.drawRoll(elapsed)) this.updateProgress(elapsed);
       if (elapsed >= timeline.duration) { this.stopPreview(); return; }
       // Schedule with the audio clock; the display is never used as the sound clock.
       while (this.previewIndex < timeline.notes.length && this.previewStart+timeline.notes[this.previewIndex].start/1000 <= audioTime+.15) {
@@ -160,8 +160,7 @@ export class Karaoke {
     }
     const duration = this.performance.timeline.duration;
     this.scoreCompletedNotes(Math.min(elapsed, duration));
-    this.drawRoll(elapsed);
-    this.updateProgress(elapsed);
+    if (this.drawRoll(elapsed)) this.updateProgress(elapsed);
     if (raw >= duration) this.finish("completed");
   }
 
@@ -171,6 +170,9 @@ export class Karaoke {
     this.stage.querySelector("#karaoke-progress-fill").style.width = `${progress}%`;
     this.stage.querySelector(".karaoke-progress").setAttribute("aria-valuenow",progress);
     this.stage.querySelector("#karaoke-time").textContent = `${this.formatTime(elapsed)} / ${this.formatTime(timeline.duration)}`;
+    const beat = Math.min(Math.ceil(timeline.duration / (60000 / this.bpm)) - 1, Math.floor(elapsed / (60000 / this.bpm)));
+    this.stage.querySelector("#karaoke-bar").textContent = `第 ${Math.floor(beat / this.song.beats) + 1} / ${Math.ceil(timeline.duration / (60000 / this.bpm * this.song.beats))} 小节 · 第 ${beat % this.song.beats + 1} 拍`;
+    this.stage.querySelector("#karaoke-remaining").textContent = `剩余 ${this.formatTime(Math.ceil(Math.max(0, timeline.duration - elapsed) / 1000) * 1000)}`;
     const target = timeline.notes.find((n) => elapsed >= n.start && elapsed < n.end);
     if (target && this.displayIndex !== target.index) {
       this.displayIndex = target.index;
@@ -221,15 +223,20 @@ export class Karaoke {
   }
 
   drawRoll(elapsed, force = false) {
-    if (!force && elapsed - this.lastDrawAt < 120) return;
-    this.lastDrawAt = elapsed;
+    const now = performance.now();
+    if (!force && now - this.lastDrawAt < 120) return false;
+    this.lastDrawAt = now;
     const timeline = this.performance?.timeline || songTimeline(this.song,this.bpm);
     const low = Math.min(...this.song.notes.map((n) => NOTES.find((note) => note.id === n.id).offset))-2;
     const high = Math.max(...this.song.notes.map((n) => NOTES.find((note) => note.id === n.id).offset))+2;
     const y = (offset) => 215-(offset-low)/(high-low)*165;
-    const x = (time) => 210+(time-elapsed)/1000*110;
-    const grid = NOTES.filter((n) => n.offset >= low && n.offset <= high).map((n) => `<line x1="54" y1="${y(n.offset)}" x2="1000" y2="${y(n.offset)}" stroke="#dfe8d9"/><text x="20" y="${y(n.offset)+5}" fill="#788c6c" font-size="13">${n.number}${n.low ? "̣" : n.high ? "̇" : ""}</text>`).join("");
-    const bars = timeline.notes.filter((n) => x(n.end)>55 && x(n.start)<1000).map((n) => {
+    const svg = this.stage.querySelector("#karaoke-roll-svg");
+    const width = Math.max(320, Math.min(1000, svg.clientWidth || 1000));
+    const cursor = Math.min(210, width * .28);
+    svg.setAttribute("viewBox", `0 0 ${width} 270`);
+    const x = (time) => cursor+(time-elapsed)/1000*110;
+    const grid = NOTES.filter((n) => n.offset >= low && n.offset <= high).map((n) => `<line x1="54" y1="${y(n.offset)}" x2="${width}" y2="${y(n.offset)}" stroke="#dfe8d9"/><text x="20" y="${y(n.offset)+5}" fill="#788c6c" font-size="13">${n.number}${n.low ? "̣" : n.high ? "̇" : ""}</text>`).join("");
+    const bars = timeline.notes.filter((n) => x(n.end)>55 && x(n.start)<width).map((n) => {
       const current = elapsed>=n.start && elapsed<n.end;
       const note = NOTES.find((note) => note.id === n.id);
       return `<rect x="${Math.max(55,x(n.start))}" y="${y(note.offset)-11}" width="${Math.max(1,x(n.end)-Math.max(55,x(n.start))-5)}" height="22" rx="7" fill="${current ? "#527943" : n.end<=elapsed ? "#c6d7b8" : "#e0ebd6"}"/><text x="${Math.max(65,x(n.start)+10)}" y="${y(note.offset)+5}" fill="${current ? "white" : "#527943"}" font-size="13">${note.number}</text>`;
@@ -242,8 +249,9 @@ export class Karaoke {
       previous = p.time;
     }
     const beat = 60000/this.bpm;
-    const beats = Array.from({length:12},(_,i) => Math.floor(Math.max(0,elapsed-1400)/beat)+i).map((b) => `<line x1="${x(b*beat)}" x2="${x(b*beat)}" y1="28" y2="236" stroke="#e4eade" stroke-dasharray="3 6"/><text x="${x(b*beat)+4}" y="258" fill="#89957f" font-size="11">${b%4+1}</text>`).join("");
-    this.stage.querySelector("#karaoke-roll-svg").innerHTML = `${grid}${beats}${bars}<path d="${path}" fill="none" stroke="#e99355" stroke-width="3" stroke-linecap="round"/><line x1="210" x2="210" y1="18" y2="236" stroke="#e99355" stroke-width="2"/><text x="210" y="13" text-anchor="middle" fill="#9a713e" font-size="10">起拍线</text>`;
+    const beats = Array.from({length:24},(_,i) => Math.floor(Math.max(0,elapsed-2000)/beat)+i).filter((b) => x(b*beat) >= 55 && x(b*beat) < width).map((b) => `<line x1="${x(b*beat)}" x2="${x(b*beat)}" y1="28" y2="236" stroke="${b%this.song.beats === 0 ? "#a6b99a" : "#e4eade"}" stroke-dasharray="${b%this.song.beats === 0 ? "0" : "3 6"}"/><text x="${x(b*beat)+4}" y="258" fill="#617a52" font-size="11">${b%this.song.beats+1}</text>`).join("");
+    svg.innerHTML = `${grid}${beats}${bars}<path d="${path}" fill="none" stroke="#e99355" stroke-width="3" stroke-linecap="round"/><line x1="${cursor}" x2="${cursor}" y1="18" y2="236" stroke="#e99355" stroke-width="2"/><text x="${cursor}" y="13" text-anchor="middle" fill="#9a713e" font-size="10">起拍线</text>`;
+    return true;
   }
 
   pause() {
@@ -271,7 +279,7 @@ export class Karaoke {
     clearInterval(this.timer);
     this.context.audioService.engine.stopClicks();
     this.report = this.performance.finish(reason === "completed" ? this.performance.timeline.duration : elapsed, reason);
-    this.previousReport = this.context.store.getState().reports?.find((report) => report.songId === this.report.songId) || null;
+    this.previousReport = this.context.store.getState().reports?.slice().reverse().find((report) => report.songId === this.report.songId) || null;
     const saved = this.context.store.addReport(this.report);
     if (release) this.context.audioService.stopMic();
     this.render();

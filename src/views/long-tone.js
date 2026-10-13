@@ -43,41 +43,54 @@ export function longTonePage(state) {
 }
 
 export function renderBreathChart(challenge, tolerance) {
+  const paths = chartPaths(challenge);
+  return `<rect data-breath-safe-zone x="58" y="${90 - tolerance * 0.62}" width="722" height="${tolerance * 1.24}" rx="6" fill="#e1efd9"/>
+    <g fill="#748168" font-size="12"><text x="0" y="31">+100¢</text><text x="8" y="94">0¢</text><text x="0" y="155">−100¢</text><text x="0" y="190">−10 dB</text><text x="0" y="239">−60 dB</text><text data-breath-start x="58" y="257">${paths.start.toFixed(0)}s</text><text data-breath-end x="750" y="257">${paths.end.toFixed(0)}s</text></g>
+    <path d="M58,90 H780 M58,165 H780 M58,238 H780" stroke="#d4dccb" stroke-dasharray="4 4"/>
+    <path id="breath-pitch-path" d="${paths.pitch}" fill="none" stroke="#527943" stroke-width="2.5"/>
+    <path id="breath-volume-path" d="${paths.volume}" fill="none" stroke="#bb9353" stroke-width="2"/>`;
+}
+
+function chartPaths(challenge) {
   const samples = challenge?.samples || [];
   const end = Math.max(12, samples.at(-1)?.time || 0);
   const start = end - 12;
   const points = samples.filter((s) => s.time >= start);
   const x = (s) => 58 + ((s.time - start) / 12) * 722;
-  const pitchY = (s) =>
-    90 - Math.max(-100, Math.min(100, s.cents)) * 0.62;
-  const volumeY = (s) =>
-    238 -
-    Math.max(
-      0,
-      Math.min(60, 20 * Math.log10(Math.max(s.rms, 0.001)) + 60),
-    );
+  const pitchY = (s) => 90 - Math.max(-100, Math.min(100, s.cents)) * 0.62;
+  const volumeY = (s) => 238 - Math.max(0, Math.min(60, 20 * Math.log10(Math.max(s.rms, 0.001)) + 60));
   const path = (getY, valid) => {
     let connected = false;
     let last = null;
-    return points
-      .map((s) => {
-        if (!valid(s)) {
-          connected = false;
-          return "";
-        }
-        if (last !== null && s.time - last > 0.25) connected = false;
-        const command = connected ? "L" : "M";
-        connected = true;
-        last = s.time;
-        return `${command}${x(s).toFixed(1)},${getY(s).toFixed(1)}`;
-      })
-      .join(" ");
+    return points.map((s) => {
+      if (!valid(s)) { connected = false; return ""; }
+      if (last !== null && s.time - last > 0.25) connected = false;
+      const command = connected ? "L" : "M";
+      connected = true;
+      last = s.time;
+      return `${command}${x(s).toFixed(1)},${getY(s).toFixed(1)}`;
+    }).join(" ");
   };
-  return `<rect x="58" y="${90 - tolerance * 0.62}" width="722" height="${tolerance * 1.24}" rx="6" fill="#e1efd9"/>
-    <g fill="#748168" font-size="12"><text x="0" y="31">+100¢</text><text x="8" y="94">0¢</text><text x="0" y="155">−100¢</text><text x="0" y="190">−10 dB</text><text x="0" y="239">−60 dB</text><text x="58" y="257">${start.toFixed(0)}s</text><text x="750" y="257">${end.toFixed(0)}s</text></g>
-    <path d="M58,90 H780 M58,165 H780 M58,238 H780" stroke="#d4dccb" stroke-dasharray="4 4"/>
-    <path d="${path(pitchY, (s) => s.cents !== null)}" fill="none" stroke="#527943" stroke-width="2.5"/>
-    <path d="${path(volumeY, () => true)}" fill="none" stroke="#bb9353" stroke-width="2"/>`;
+  return {
+    pitch: path(pitchY, (s) => s.cents !== null),
+    volume: path(volumeY, () => true),
+    start,
+    end,
+  };
+}
+
+function updateBreathChart(chart, challenge, tolerance) {
+  if (!chart) return;
+  const paths = chartPaths(challenge);
+  chart.querySelector("#breath-pitch-path")?.setAttribute("d", paths.pitch);
+  chart.querySelector("#breath-volume-path")?.setAttribute("d", paths.volume);
+  const zone = chart.querySelector("[data-breath-safe-zone]");
+  if (zone) {
+    zone.setAttribute("y", String(90 - tolerance * 0.62));
+    zone.setAttribute("height", String(tolerance * 1.24));
+  }
+  chart.querySelector("[data-breath-start]")?.replaceChildren(`${paths.start.toFixed(0)}s`);
+  chart.querySelector("[data-breath-end]")?.replaceChildren(`${paths.end.toFixed(0)}s`);
 }
 
 export function resultMarkup(result) {
@@ -116,6 +129,7 @@ export class LongTonePage {
   unmount() {
     clearInterval(this.countdownTimer);
     this.countdownTimer = null;
+    this.generation = (this.generation || 0) + 1;
     this.finish();
     if (this.unsubscribe) {
       this.unsubscribe();
@@ -147,6 +161,7 @@ export class LongTonePage {
     this.longTip = this.container.querySelector("#long-tip");
     this.longBeginnerBanner = this.container.querySelector("#long-beginner-banner");
     this.longCountdown = this.container.querySelector("#long-countdown");
+    this.chartReady = false;
   }
 
   setText(el, text) {
@@ -170,6 +185,7 @@ export class LongTonePage {
       changedKeys.has("tolerance")
     ) {
       this.updateNoteDetails(state);
+      if (changedKeys.has("tolerance")) this._paintChart = true;
     }
   }
 
@@ -191,6 +207,11 @@ export class LongTonePage {
     if (this.longTip) {
       this.longTip.textContent = note.tip;
     }
+    const select = this.container?.querySelector("#long-note");
+    if (select) select.value = note.id;
+    if (this.longBeginnerBanner) this.longBeginnerBanner.textContent = note.id === "low5"
+      ? "全按低音 5：六孔盖严，气流放缓；吹不响时先回到中音 2。"
+      : "均匀送气，保持风门和拾音距离稳定。";
   }
 
   paint() {
@@ -198,8 +219,12 @@ export class LongTonePage {
     const state = this.context.store.getState();
     const challenge = state.challenge;
 
-    if (this._paintChart !== false) {
+    if (!this.chartReady) {
       this.chart.innerHTML = renderBreathChart(challenge, state.tolerance);
+      this.chartReady = true;
+      this._paintChart = false;
+    } else if (this._paintChart !== false) {
+      updateBreathChart(this.chart, challenge, state.tolerance);
       this._paintChart = false;
     }
     if (this.holdSeconds) {
@@ -244,24 +269,33 @@ export class LongTonePage {
 
     if (this.longResult) {
       this.longResult.hidden = !challenge?.result;
-      if (challenge?.result) {
+      if (challenge?.result && this.paintedResult !== challenge.result) {
         this.longResult.innerHTML = resultMarkup(challenge.result);
+        this.paintedResult = challenge.result;
       }
     }
-    this.container?.querySelectorAll("[data-phase]").forEach((el) => el.classList.toggle("active", el.dataset.phase === (challenge?.phase || "inhale")));
+    this.container?.querySelectorAll("[data-phase]").forEach((el) => {
+      const active = el.dataset.phase === (challenge?.phase || "inhale");
+      el.classList.toggle("active", active);
+      if (active) el.setAttribute("aria-current", "step");
+      else el.removeAttribute("aria-current");
+    });
     if (this.longCountdown) {
       this.longCountdown.hidden = !this.countdownValue;
       this.longCountdown.textContent = this.countdownValue ? String(this.countdownValue) : "";
     }
-    const medal = challenge?.best >= 8 ? 8 : challenge?.best >= 5 ? 8 : challenge?.best >= 3 ? 5 : 3;
-    const remaining = Math.max(0, medal - (challenge?.streak || 0));
+    const medal = challenge?.best >= 8 ? null : challenge?.best >= 5 ? 8 : challenge?.best >= 3 ? 5 : 3;
+    const remaining = medal === null ? 0 : Math.max(0, medal - (challenge?.streak || 0));
     if (state.longArmed && challenge?.status !== "finished" && this.holdStatus && remaining > 0 && challenge?.status === "running") {
-      this.holdStatus.textContent = `${challenge.best.toFixed(1)} 秒 · 距离下一枚${remaining.toFixed(1)} 秒 · ${challenge.resetReason}`;
+      this.holdStatus.textContent = `最长连续 ${challenge.best.toFixed(1)} 秒 · 距离${medal === 3 ? "青铜" : medal === 5 ? "白银" : "黄金"}还差 ${remaining.toFixed(1)} 秒 · ${challenge.resetReason}`;
     }
   }
 
   async start() {
+    if (["requesting", "testing"].includes(this.context.store.getState().micStatus)) return;
+    const generation = this.generation = (this.generation || 0) + 1;
     clearInterval(this.countdownTimer);
+    this.countdownTimer = null;
     this.countdownValue = null;
     this.context.audioService.stopDemo();
     const state = this.context.store.getState();
@@ -279,7 +313,12 @@ export class LongTonePage {
     if (state.mic === "off") {
       await this.context.audioService.startMic();
     }
+    if (generation !== this.generation || !this.container) return;
     if (this.context.store.getState().mic === "on") this.beginCountdown();
+    else {
+      this.context.store.setState({ longArmed: false });
+      this.paint();
+    }
   }
 
   beginCountdown() {
@@ -297,9 +336,10 @@ export class LongTonePage {
     }, 1000);
   }
 
-  finish() {
+  finish(release = true) {
     const state = this.context.store.getState();
     if (!state.longArmed) return;
+    this.generation = (this.generation || 0) + 1;
 
     clearInterval(this.countdownTimer);
     this.countdownTimer = null;
@@ -311,6 +351,8 @@ export class LongTonePage {
     }
 
     this.context.store.setState({ longArmed: false });
+    if (release) this.context.audioService.stopMic();
+    this._paintChart = true;
     this.paint();
 
     if (state.challenge?.result) {
@@ -319,7 +361,7 @@ export class LongTonePage {
   }
 
   onFinishLongTone() {
-    this.finish();
+    this.finish(false);
   }
 
   onAudioFrame({ frequency, rms }) {
@@ -350,11 +392,7 @@ export class LongTonePage {
     );
 
     if (state.challenge.status === "finished") {
-      this.context.store.setState({ longArmed: false });
-      if (state.challenge.best >= 3) {
-        state.sessionNotes.add(state.longNote.id);
-      }
-      this.setFeedback("本次挑战已完成", "看看本次成绩，休息一下再挑战。");
+      this.finish();
     }
     this._paintChart = now - (this.lastChartPaint || 0) >= 120 || state.challenge.status === "finished";
     if (this._paintChart) this.lastChartPaint = now;
@@ -389,6 +427,7 @@ export class LongTonePage {
         longNote: note,
         challenge: null,
       });
+      this._paintChart = true;
       this.paint();
     }
   }

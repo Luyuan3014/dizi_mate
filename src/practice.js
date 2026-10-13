@@ -92,7 +92,8 @@ export class LongToneChallenge {
     const dt = this.last === null ? 0 : Math.max(0, (now - this.last) / 1000);
     const good = voiced && Math.abs(cents) <= this.tolerance;
     // Long tones deliberately require continuous green, unlike the lesson bucket.
-    this.streak = good ? (this.previousGood && dt <= 0.25 ? this.streak + dt : 0) : 0;
+    const continuous = this.previousGood && dt <= 0.25;
+    this.streak = good ? (continuous ? this.streak + dt : 0) : 0;
     this.best = Math.max(this.best, this.streak);
     this.previousGood = good;
     this.last = now;
@@ -103,9 +104,12 @@ export class LongToneChallenge {
     } else if (!good) {
       this.phase = "blow";
       this.resetReason = cents < 0 ? "音高偏低，偏离后重新计时" : "音高偏高，偏离后重新计时";
-    } else if (this.previousGood && this.streak > 0) {
+    } else if (continuous && this.streak > 0) {
       this.phase = "hold";
       this.resetReason = "保持在绿色带内";
+    } else if (good) {
+      this.phase = "blow";
+      this.resetReason = "重新收到声音，连续时间重新计时";
     }
     this.samples.push({ time: (now - this.started) / 1000, cents: voiced ? cents : null, rms });
     if (this.best >= 8 || now - this.lastVoice >= 600 || now - this.started >= 30000) this.finish();
