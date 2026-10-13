@@ -11,7 +11,8 @@ export class Karaoke {
     this.context = context;
     this.container = container;
     this.mode = "free";
-    this.song = PERFORMANCE_SONGS[0];
+    const launchId = context.store.getState().songLaunchId;
+    this.song = PERFORMANCE_SONGS.find((song) => song.id === launchId) || PERFORMANCE_SONGS[0];
     this.bpm = this.song.bpm;
     this.sound = false;
     this.status = "idle";

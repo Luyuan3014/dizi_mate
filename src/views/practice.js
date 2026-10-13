@@ -101,6 +101,10 @@ export class PracticePage {
 
     this.cacheElements();
     this.karaoke = new Karaoke(this.context, this.container);
+    if (state.songLaunchMode === "karaoke") {
+      this.context.store.setState({ songLaunchMode: null, songLaunchId: null });
+      this.karaoke.setMode("song");
+    }
     this.updateMicUI();
     this.updateMetronomeUI();
     this.updatePracticeGoal();
@@ -190,6 +194,7 @@ export class PracticePage {
       note,
       practiceResume: { lessonId: state.lesson.id, index },
     });
+    if (SONGS.some((song) => song.id === state.lesson.id)) this.context.store.updateSongProgress(state.lesson.id, { index });
   }
 
   chooseLesson(lessonId) {
@@ -447,6 +452,11 @@ export class PracticePage {
         )
       : null;
     const good = frequency ? Math.abs(cents) <= state.tolerance : null;
+    if (frequency && Math.abs(cents) > state.tolerance) {
+      const side = cents < 0 ? "low" : "high";
+      const directions = state.sessionDirections || { low: {}, high: {} };
+      directions[side][state.note.id] = (directions[side][state.note.id] || 0) + 1;
+    }
     const bucket = confidence.update(now, good);
     const mark = `${state.lesson.id}:${state.index}:${state.note.id}`;
 
@@ -482,6 +492,7 @@ export class PracticePage {
     if (bucket.passed) {
       state.passed.add(mark);
       state.sessionNotes.add(state.note.id);
+      if (SONGS.some((song) => song.id === state.lesson.id)) this.context.store.updateSongProgress(state.lesson.id, { index: state.index, completion: Math.round((state.index + 1) / state.lesson.sequence.length * 100) });
       this.container
         .querySelectorAll(".score-notes .score-note")
         [state.index]?.classList.add("passed");

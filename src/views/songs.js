@@ -9,8 +9,17 @@ import {
   setMetronomeBpm,
 } from "../components/metronome.js";
 
-export function songsPage(state, activeSongId = "two-tigers") {
+function songProgressFor(state, song) {
+  const direct = state.songProgress?.[song.id];
+  const report = (state.reports || []).slice().reverse().find((r) => r.title === song.title);
+  return { index: direct?.index || 0, completion: direct?.completion ?? (report ? Math.round((report.elapsed / report.duration) * 100) : 0), score: direct?.score ?? report?.score ?? null, lastAt: direct?.lastAt || report?.at || 0 };
+}
+
+export function songsPage(state, activeSongId = "two-tigers", filter = "all") {
   const activeSong = SONGS.find((s) => s.id === activeSongId) || SONGS[0];
+  state = { metronome: { bpm: 60, beats: 4, open: false, running: false }, ...state, metronome: state.metronome || { bpm: 60, beats: 4, open: false, running: false } };
+  const favorites = new Set(state.favoriteSongs || []);
+  const filteredSongs = SONGS.filter((song) => filter === "favorites" ? favorites.has(song.id) : filter === "recent" ? (state.recentSongs || []).includes(song.id) : filter === "easy" ? song.difficulty === "★☆☆☆☆" : true);
 
   return `${hero(
     "第一段旋律，从熟悉的开始",
@@ -38,11 +47,13 @@ export function songsPage(state, activeSongId = "two-tigers") {
               `<span data-song-beat="${i}"><ruby>${id}<rt>${activeSong.lyrics?.[i] || ""}</rt></ruby></span>`,
           )
           .join(" ")}</div>
-        <p class="song-tip">💡 ${activeSong.tip}</p>
+        <p class="song-tip">${icon("help")} ${activeSong.tip}</p>
+        <div class="song-progress-summary">${songProgressFor(state, activeSong).score === null ? "还没有成绩" : `上次 ${songProgressFor(state, activeSong).score} 分`} · 完成度 ${songProgressFor(state, activeSong).completion}%</div>
         <div class="song-actions-row">
-          <button class="button button-outline" data-action="song-demo">${icon(state.demo ? "pause" : "play")} <span id="song-demo-label">${state.demo ? "停止示范" : "节拍器同步打拍示范"}</span></button>
+          <button class="button button-outline" data-action="song-demo">${icon(state.demo ? "pause" : "play")} <span id="song-demo-label">${state.demo ? "停止示范" : "试听整段旋律"}</span></button>
           <button class="button button-outline" data-action="apply-bpm" data-bpm="${activeSong.bpm}">${icon("clock")} 应用建议速度 (${activeSong.bpm} BPM)</button>
-          <button class="button button-primary" data-action="lesson" data-song-id="${activeSong.id}">开始这段练习 ${icon("arrow")}</button>
+          <button class="button button-outline" data-action="performance" data-song-id="${activeSong.id}">跟曲演奏 ${icon("music")}</button>
+          <button class="button button-primary" data-action="lesson" data-song-id="${activeSong.id}">${songProgressFor(state, activeSong).index > 0 ? "从上次位置继续" : "逐音练习"} ${icon("arrow")}</button>
         </div>
       </div>
     </section>
@@ -53,15 +64,15 @@ export function songsPage(state, activeSongId = "two-tigers") {
           <h3>初学者曲谱选集</h3>
           <p>从简到难精选 6 首适合起步的经典短旋律，后续进阶曲目将持续添加。</p>
         </div>
-        <span class="shelf-count">共 ${SONGS.length} 首</span>
+        <div class="song-filters" role="group" aria-label="曲谱筛选"><button class="filter-tab ${filter === "all" ? "active" : ""}" data-action="song-filter" data-filter="all">全部</button><button class="filter-tab ${filter === "recent" ? "active" : ""}" data-action="song-filter" data-filter="recent">最近练习</button><button class="filter-tab ${filter === "favorites" ? "active" : ""}" data-action="song-filter" data-filter="favorites">收藏</button><button class="filter-tab ${filter === "easy" ? "active" : ""}" data-action="song-filter" data-filter="easy">简单</button></div><span class="shelf-count">共 ${filteredSongs.length} 首</span>
       </div>
       <div class="songs-grid">
-        ${SONGS.map(
+        ${filteredSongs.map(
           (song) => `
           <article class="card song-item-card ${song.id === activeSong.id ? "active" : ""}" data-song-id="${song.id}">
             <div class="song-item-top">
               <span class="level-tag">${song.tag}</span>
-              <span class="song-difficulty">${song.difficulty}</span>
+              <span class="song-difficulty">${song.difficulty} <button class="song-favorite ${favorites.has(song.id) ? "active" : ""}" data-action="favorite-song" data-song-id="${song.id}" aria-label="${favorites.has(song.id) ? "取消收藏" : "收藏"} ${song.title}" aria-pressed="${favorites.has(song.id)}">${icon(favorites.has(song.id) ? "check" : "target")}</button></span>
             </div>
             <h4>${song.title}</h4>
             <p class="song-item-sub">${song.subtitle}</p>
@@ -69,11 +80,10 @@ export function songsPage(state, activeSongId = "two-tigers") {
             <div class="song-item-meta">
               <span>${icon("clock")} ${song.bpm} BPM</span>
               <span>${song.sequence.length} 拍</span>
+              <span>上次 ${songProgressFor(state, song).score === null ? "—" : `${songProgressFor(state, song).score} 分`}</span>
             </div>
             <div class="song-item-actions">
-              <button class="button ${song.id === activeSong.id ? "button-primary" : "button-outline"}" data-action="select-song" data-song-id="${song.id}">
-                ${song.id === activeSong.id ? "正在查看" : "切换这首"}
-              </button>
+              <button class="button ${song.id === activeSong.id ? "button-primary" : "button-outline"}" data-action="select-song" data-song-id="${song.id}">${song.id === activeSong.id ? "正在查看" : "查看曲谱"}</button><button class="button-link" data-action="performance" data-song-id="${song.id}">跟曲演奏</button><button class="button-link" data-action="lesson" data-song-id="${song.id}">${songProgressFor(state, song).index > 0 ? "继续逐音练习" : "逐音练习"}</button>
             </div>
           </article>
         `,
@@ -89,6 +99,7 @@ export class SongsPage {
     this.context = context;
     this.container = null;
     this.activeSongId = "two-tigers";
+    this.filter = "all";
     this.unsubscribe = null;
     this.boundClickHandler = this.handleClick.bind(this);
     this.boundInputHandler = this.handleInput.bind(this);
@@ -103,7 +114,7 @@ export class SongsPage {
   mount(container) {
     this.container = container;
     const state = this.context.store.getState();
-    this.container.innerHTML = songsPage(state, this.activeSongId);
+    this.container.innerHTML = songsPage(state, this.activeSongId, this.filter);
 
     this.cacheElements();
     this.updateMetronomeUI();
@@ -153,6 +164,11 @@ export class SongsPage {
     if (changedKeys.has("demo")) {
       this.updateDemoUI(state);
     }
+    if (changedKeys.has("favoriteSongs") || changedKeys.has("songProgress") || changedKeys.has("recentSongs") || changedKeys.has("reports")) {
+      this.container.innerHTML = songsPage(state, this.activeSongId, this.filter);
+      this.cacheElements();
+      this.updateMetronomeUI();
+    }
   }
 
   updateMetronomeUI() {
@@ -191,7 +207,7 @@ export class SongsPage {
     this.context.audioService.stopDemo();
     this.activeSongId = songId;
     const state = this.context.store.getState();
-    this.container.innerHTML = songsPage(state, this.activeSongId);
+    this.container.innerHTML = songsPage(state, this.activeSongId, this.filter);
     this.cacheElements();
     this.updateMetronomeUI();
   }
@@ -207,6 +223,13 @@ export class SongsPage {
 
     if (action === "select-song") {
       this.switchSong(button.dataset.songId);
+    } else if (action === "song-filter") {
+      this.filter = button.dataset.filter || "all";
+      this.container.innerHTML = songsPage(this.context.store.getState(), this.activeSongId, this.filter);
+      this.cacheElements();
+      this.updateMetronomeUI();
+    } else if (action === "favorite-song") {
+      this.context.store.toggleFavoriteSong(button.dataset.songId);
     } else if (action === "apply-bpm") {
       const bpm = Number(button.dataset.bpm);
       if (Number.isFinite(bpm)) {
@@ -231,13 +254,21 @@ export class SongsPage {
       const note = NOTES.find((n) => n.id === song.sequence[0]);
       this.context.audioService.stopMic();
       this.context.audioService.stopDemo();
+      const progress = this.context.store.getState().songProgress?.[song.id] || {};
+      this.context.store.updateSongProgress(song.id, { index: Number.isInteger(progress.index) ? progress.index : 0 });
       this.context.store.setState({
         passed: new Set(),
         lesson,
-        index: 0,
-        note,
+        index: Number.isInteger(progress.index) ? Math.min(progress.index, song.sequence.length - 1) : 0,
+        note: NOTES.find((n) => n.id === song.sequence[Math.min(progress.index || 0, song.sequence.length - 1)]) || note,
         customHoles: null,
       });
+      this.context.router.navigate("practice");
+    } else if (action === "performance") {
+      const song = SONGS.find((s) => s.id === (button.dataset.songId || this.activeSongId)) || SONGS[0];
+      this.context.store.updateSongProgress(song.id, { index: 0 });
+      const performanceId = { "two-tigers": "tigers-full", "twinkle-star": "star-full", "ode-to-joy": "joy-theme" }[song.id] || "tigers-full";
+      this.context.store.setState({ songLaunchMode: "karaoke", songLaunchId: performanceId });
       this.context.router.navigate("practice");
     } else if (action === "metronome") {
       this.context.audioService.startMetronome();
