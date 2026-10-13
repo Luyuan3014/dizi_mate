@@ -32,7 +32,7 @@
 | :--- | :--- | :--- |
 | **接入与外壳层**<br/>(Shell Layer) | [`src/main.js`](../src/main.js)<br/>[`src/shell.js`](../src/shell.js) | • `main.js` 作为轻量装配器（约 100 行），负责全局单例组装与环境事件监听；<br/>• `AppShell` 维护侧边栏、顶栏面包屑/调性徽标、模态弹窗与 Toast 消息，常驻 DOM 零重绘。 |
 | **路由与组件层**<br/>(Routing & Views) | [`src/router.js`](../src/router.js)<br/>[`src/views/*.js`](../src/views/) | • `Router` 负责基于 URL Hash 驱动页面 `unmount -> mount` 生命周期；主动导航写入浏览器历史，后退/前进由 `hashchange` 与 `popstate` 统一处理，并在挂载后把焦点移到页面标题；<br/>• 7 大页面组件封装：`PracticePage`、`FingeringPage`、`TunerPage`、`LongTonePage`、`SongsPage`、`NotationPage`、`HistoryPage`。 |
-| **状态中心**<br/>(State Layer) | [`src/store.js`](../src/store.js) | • 单向数据中心，提供 `getState()`、`setState()`、`subscribe()`；<br/>• 基于状态 Diff 计算 `changedKeys`，触发增量响应；<br/>• 封装本地持久化 `saveSettings` 与今日练习统计计算。 |
+| **状态中心**<br/>(State Layer) | [`src/store.js`](../src/store.js) | • 单向数据中心，提供 `getState()`、`setState()`、`subscribe()`；<br/>• 基于状态 Diff 计算 `changedKeys`，触发增量响应；<br/>• 封装本地持久化 `saveSettings`、今日练习统计和首次练习目标/累计时长/恢复位置。 |
 | **音频协同服务**<br/>(Audio Coordinator) | [`src/audio-service.js`](../src/audio-service.js) | • 封装音频设备生命周期、麦克风启停、世代计数器（防并发竞态）；请求后先经过约 1 秒环境噪声预检，再向页面发布 ready/denied/missing/busy/interrupted 等可解释状态；<br/>• 统筹管理合成音示范（单音/旋律序列）与节拍器；<br/>• 向当前活跃页面定向分发实时音频帧流（`onAudioFrame` / `onBeat`）。 |
 | **核心算法与底层底座**<br/>(Core DSP & Theory) | [`src/audio.js`](../src/audio.js)<br/>[`src/music.js`](../src/music.js)<br/>[`src/practice.js`](../src/practice.js) | • 150 Hz 气流高通滤波、自相关音高检测（YIN-like Autocorrelation）；<br/>• 5 帧移动中位数滤波与置信度时间积分桶（ConfidenceBucket）；<br/>• C/D/E/F/G 五调性竹笛十二平均律频率映射、筒音作 5 指法表；<br/>• Web Audio API、MediaDevices 硬件驱动与 LocalStorage。 |
 
@@ -97,6 +97,7 @@ sequenceDiagram
 通过轻量订阅发布模式与单向数据流替代全局随意变更，避免无效渲染：
 - **增量 Diff 通知**：`setState(patch)` 计算变更键名集合 `changedKeys`，只有关心的字段发生变动时，相关组件才触发局部 DOM 修改；
 - **纯函数统计与持久化隔离**：`calculateTodayStats()` 实时从 `sessions` 计算练习分钟数与吹准音符数，存储读写均封装异常捕获，容忍隐私模式或无存储环境。
+- **首次练习闭环状态**：`practiceTargetMinutes`（3/5/0）、`practiceElapsedSeconds` 和 `practiceResume` 只在 Store 变更时通知页面；练习页用轻量时钟刷新显示，停止麦克风时一次性提交本轮时长。
 
 ```mermaid
 flowchart LR
@@ -122,6 +123,7 @@ flowchart LR
 - **切音**：只替换目标音符卡片、更新竹笛指法 SVG、切换下方小节拍高亮 `.score-note.current`；
 - **音准反馈**：直接修改 `#pitch-indicator` 的 `style.left` 与 `in-tune` 类名，动态修改 `#waveform` 的高度变量 `--intensity`；
 - **打卡通过**：在对应音符节点直接加上 `.passed` 类名，更新局部提示文案。
+- **实时反馈状态**：`src/components/shared.js` 的 `practiceFeedback()` 将无声、低音量、偏低、偏高、接近和稳定映射为统一状态；PracticePage 只更新反馈文字、状态标签和音高指示器。
 
 ---
 
