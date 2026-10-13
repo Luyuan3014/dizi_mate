@@ -183,3 +183,9 @@ flowchart LR
 - `NotationPage` 的示例音符全部渲染为可聚焦按钮，键盘 Enter / Space 与点击共用试听逻辑；`notationProgress` 通过 Store 持久化，知识卡片按已学状态增量刷新。
 - `SongsPage` 使用 `favoriteSongs`、`recentSongs`、`songProgress` 展示筛选、上次分数/完成度和恢复位置，试听、逐音练习、跟曲演奏分别进入对应流程。
 - `HistoryPage` 通过 `practiceInsights()` 计算 7/30 日趋势、连续天数和音符方向统计，并提供本机 JSON 数据管理。`AudioService` 在结束一次麦克风会话时保存偏低/偏高音符计数，导入使用 `validateImportedData()` 做版本和结构校验。
+
+## 9. 阶段五增量实现（2026-10-13）
+
+- `AppShell` 继续保持桌面侧边导航，同时通过 `MOBILE_NAV` 将移动导航映射为练习、学习、曲谱、记录四个稳定入口；完整页面仍由原 Hash 路由处理，调音器、长音、简谱和设置等次级能力通过 `mobile-menu` 原生 dialog 抽屉访问。
+- `src/style.css` 增加移动抽屉、底部安全区、主内容底部留白和 44px 以上指法热区规则。移动端不会复用七项桌面导航，避免小屏文字挤压和底栏遮挡内容。
+- 视觉层使用现有 CSS 令牌作为唯一颜色/间距/圆角入口；提示图标由 `src/components/icons.js` 输出 SVG，状态动效受 `prefers-reduced-motion` 控制。`flute-controls` 的卸载流程继续取消 requestAnimationFrame、指针监听和 WebGL viewer。
