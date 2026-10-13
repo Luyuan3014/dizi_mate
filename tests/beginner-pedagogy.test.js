@@ -5,6 +5,7 @@ import { LESSONS, NOTES } from "../src/music.js";
 import { practicePage } from "../src/views/practice.js";
 import { fingeringPage } from "../src/views/fingering.js";
 import { longTonePage } from "../src/views/long-tone.js";
+import { tunerPage } from "../src/views/tuner.js";
 import { dialogView } from "../src/views/settings.js";
 import { practiceFeedback } from "../src/components/shared.js";
 
@@ -73,6 +74,17 @@ test("longTonePage renders beginner recommendations and banners", () => {
   assert.ok(markup.includes("⚠️ [全按挑战]"));
   assert.ok(markup.includes("long-beginner-banner"));
   assert.ok(markup.includes("新手发音首选音"));
+  assert.ok(markup.includes("long-countdown"));
+  assert.ok(markup.includes('data-phase="inhale"'));
+  assert.ok(markup.includes('data-phase="hold"'));
+});
+
+test("tunerPage exposes target mode and pitch register groups", () => {
+  const markup = tunerPage(createStore().getState());
+  assert.ok(markup.includes("目标音模式"));
+  assert.ok(markup.includes("低音"));
+  assert.ok(markup.includes("中音"));
+  assert.ok(markup.includes("高音"));
 });
 
 test("dialogView renders beginner guide separating breath and fingers", () => {
