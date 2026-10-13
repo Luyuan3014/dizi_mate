@@ -65,10 +65,13 @@ export class AudioEngine {
 
   async ready() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext)
-      throw new Error(
+    if (!AudioContext) {
+      const error = new Error(
         "这个浏览器暂不支持音频处理，请使用新版 Chrome、Edge 或 Safari。",
       );
+      error.name = "NotSupportedError";
+      throw error;
+    }
     this.context ||= new AudioContext();
     if (this.context.state === "suspended") await this.context.resume();
     if (this.context.state !== "running")
@@ -201,17 +204,20 @@ export class AudioEngine {
     this.clickWindows = [];
   }
 
-  async start(onFrame, onEnded) {
+  async start(onFrame, onEnded, { mode = "precise" } = {}) {
     this.stop();
     const requestId = this.requestId;
-    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia)
-      throw new Error(
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      const error = new Error(
         "麦克风需要 HTTPS 或 localhost。请在本机 localhost 地址打开，或部署到 HTTPS。",
       );
+      error.name = "SecurityError";
+      throw error;
+    }
     await this.ready();
     if (requestId !== this.requestId) return false;
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
+      audio: mode === "compatible" ? true : {
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,

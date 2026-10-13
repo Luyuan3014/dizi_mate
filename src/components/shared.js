@@ -1,13 +1,17 @@
 import { icon } from "./icons.js";
 import { noteLabel } from "../music.js";
+import { micPreflight, micMeter } from "./microphone.js";
 export function noteMarkup(note, className = "") {
   return `<span class="notation ${note.low ? "low-note" : note.high ? "high-note" : ""} ${className}" aria-label="${noteLabel(note)}">${note.number}${note.low || note.high ? '<span class="note-dot"></span>' : ""}</span>`;
 }
 
 export function micControls() {
-  return `<div class="live-controls"><span class="mic-state" id="mic-state"><i></i>等待开启</span>
-    <button class="button button-primary" id="mic-button" data-action="mic">${icon("mic")} 开启麦克风，试着吹</button>
-    <h3 id="feedback-title" aria-live="polite">准备好了，轻轻吹一声</h3><p id="feedback-copy">让麦克风离笛子约 30–50 厘米，避开直吹气流。</p>
+  return `<div class="live-controls" aria-labelledby="mic-heading">
+    ${micPreflight()}
+    <span class="mic-state" id="mic-state" role="status" aria-live="polite"><i></i>等待开启</span>
+    <button class="button button-primary" id="mic-button" data-action="mic">${icon("mic")} 测试麦克风并开始</button>
+    ${micMeter()}
+    <h3 id="feedback-title" aria-live="polite" aria-atomic="true">准备好了，吹一声试试</h3><p id="feedback-copy" aria-live="polite">允许权限后，我们会告诉你声音是否足够清楚。</p>
     <small>${icon("shield")} 声音只在本机处理，不录音、不上传</small></div>`;
 }
 
@@ -17,5 +21,5 @@ export function holeRow(note) {
 }
 
 export function hero(eyebrow, title, description, right = "") {
-  return `<section class="page-heading"><div><div class="eyebrow">${icon("sun")} ${eyebrow}</div><h1>${title}</h1><p>${description}</p></div>${right}</section>`;
+  return `<section class="page-heading" aria-labelledby="page-title"><div><div class="eyebrow">${icon("sun")} ${eyebrow}</div><h1 id="page-title" data-page-title tabindex="-1">${title}</h1><p>${description}</p></div>${right}</section>`;
 }

@@ -32,7 +32,7 @@ export class AudioService {
       return;
     }
     this.stopDemo();
-    this.store.setState({ mic: "requesting" });
+    this.store.setState({ mic: "requesting", micStatus: "requesting", micNoise: "unknown", micLevel: 0 });
     const generation = ++this.micGeneration;
 
     try {
@@ -40,6 +40,7 @@ export class AudioService {
         (data) => this.handleAudioFrame(data),
         () => {
           this.stopMic();
+          this.store.setState({ micStatus: "interrupted" });
           const page = this.getActivePage();
           if (page?.setFeedback) {
             page.setFeedback(
@@ -48,12 +49,21 @@ export class AudioService {
             );
           }
         },
+        { mode: state.micMode || "precise" },
       );
       if (!started || generation !== this.micGeneration) return;
       this.store.setState({
         mic: "on",
-        sessionStarted: performance.now(),
+        micStatus: "testing",
       });
+      this.noiseSamples = [];
+      const tested = await new Promise((resolve) => {
+        this.resolveMicTest = resolve;
+        this.micTestTimer = setTimeout(() => { this.resolveMicTest = null; resolve(true); }, 1000);
+      });
+      if (!tested || generation !== this.micGeneration) return;
+      const noise = this.noiseSamples.reduce((sum, rms) => sum + rms, 0) / Math.max(1, this.noiseSamples.length);
+      this.store.setState({ micStatus: "ready", micNoise: noise > 0.015 ? "noisy" : "quiet", sessionStarted: performance.now() });
       const page = this.getActivePage();
       if (page?.setFeedback) {
         page.setFeedback(
@@ -65,6 +75,8 @@ export class AudioService {
       if (generation !== this.micGeneration) return;
       this.stopMic();
       const messages = {
+        SecurityError: "当前页面无法使用麦克风。请改用 localhost 或 HTTPS 地址。",
+        NotSupportedError: "当前浏览器不支持音频处理，请更新 Chrome、Edge 或 Safari。",
         NotAllowedError:
           "麦克风未获授权。请在地址栏的权限设置里允许麦克风，再重试。",
         NotFoundError: "没有找到麦克风。连接设备后，再试一次。",
@@ -75,6 +87,7 @@ export class AudioService {
       const title = "还没有听到你的声音";
       const copy =
         messages[error.name] || error.message || "麦克风暂时不可用，请稍后重试。";
+      this.store.setState({ micStatus: this.statusForMicError(error) });
       const page = this.getActivePage();
       if (page?.setFeedback) {
         page.setFeedback(title, copy);
@@ -92,6 +105,9 @@ export class AudioService {
       activePage.onFinishLongTone();
     }
     this.micGeneration++;
+    clearTimeout(this.micTestTimer);
+    this.resolveMicTest?.(false);
+    this.resolveMicTest = null;
     this.engine.stop();
     if (state.sessionStarted) {
       const seconds = Math.round(
@@ -105,6 +121,9 @@ export class AudioService {
     this.engine.smoother.reset();
     this.store.setState({
       mic: "off",
+      micStatus: "idle",
+      micLevel: 0,
+      micNoise: "unknown",
       sessionStarted: 0,
       sessionNotes: new Set(),
     });
@@ -114,6 +133,14 @@ export class AudioService {
     const state = this.store.getState();
     if (state.mic !== "on") return;
     const now = performance.now();
+    const level = Math.max(0, Math.min(1, (data.rms || 0) * 8));
+    this.store.setState({
+      micLevel: level,
+    });
+    if (state.micStatus === "testing") {
+      if (!data.referencePlaying && !data.metronomeBeat) this.noiseSamples?.push(data.rms || 0);
+      return;
+    }
     if (this.getActivePage()?.consumeAudioFrame?.(data)) return;
 
     if (data.referencePlaying) {
@@ -133,6 +160,17 @@ export class AudioService {
       confidence: this.confidence,
       engine: this.engine,
     });
+  }
+
+  statusForMicError(error) {
+    return ({
+      NotAllowedError: "denied",
+      NotFoundError: "missing",
+      NotReadableError: "busy",
+      AbortError: "interrupted",
+      SecurityError: "insecure",
+      NotSupportedError: "unsupported",
+    })[error?.name] || "error";
   }
 
   stopDemo() {
