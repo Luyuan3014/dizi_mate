@@ -21,13 +21,13 @@ export function longTonePage(state) {
     <section class="card long-tone-card">
       <div class="long-tone-toolbar"><label for="long-note">练习音符 <select id="long-note">${NOTES.map((n) => {
           const isBeginner = n.id === "2" || n.id === "1";
-          const tag = isBeginner ? "⭐ [新手首选] " : n.id === "low5" ? "⚠️ [全按挑战] " : "";
+          const tag = isBeginner ? '<span aria-label="⭐ [新手首选]">[新手首选] </span>' : n.id === "low5" ? '<span aria-label="⚠️ [全按挑战]">[全按挑战] </span>' : "";
           return `<option value="${n.id}" ${n.id === note.id ? "selected" : ""}>${tag}${noteLabel(n)} · ${pitchNameFor(n, state.key)}</option>`;
         }).join("")}</select></label>
         <span id="long-hz-span">${pitchNameFor(note, state.key)} · ${frequencyFor(note, state.key, state.reference).toFixed(1)} Hz · ±${state.tolerance} 音分</span>
       </div>
       <div id="long-hole-container">${holeRow(note)}</div><p class="long-tip" id="long-tip">${note.tip}</p>
-      <div class="long-beginner-banner" id="long-beginner-banner">${note.id === "2" || note.id === "1" ? '<span>⭐ <strong>新手发音首选音</strong>：按孔少、气流阻力小，极易吹响，是找准瓶口风门与腹式长音的最佳起点。</span>' : note.id === "low5" ? '<span>⚠️ <strong>全按低音 5 挑战</strong>：需 6 个孔完全密闭且气流极缓。若吹不响或发虚，请先切换至中音 2 或 1 练习！</span>' : '<span>💡 <strong>长音练习要诀</strong>：一口气均匀送出，风门保持稳定，尽量让音高平稳落在绿色安全带内。</span>'}</div>
+      <div class="long-beginner-banner" id="long-beginner-banner">${note.id === "2" || note.id === "1" ? `<span>${icon("leaf")} <strong>新手发音首选音</strong>：按孔少、气流阻力小，极易吹响，是找准瓶口风门与腹式长音的最佳起点。</span>` : note.id === "low5" ? `<span>${icon("warning")} <strong>全按低音 5 挑战</strong>：需 6 个孔完全密闭且气流极缓。若吹不响或发虚，请先切换至中音 2 或 1 练习！</span>` : `<span>${icon("lightbulb")} <strong>长音练习要诀</strong>：一口气均匀送出，风门保持稳定，尽量让音高平稳落在绿色安全带内。</span>`}</div>
       <div class="challenge-milestones">${[[3, "青铜"], [5, "白银"], [8, "黄金"]].map(([s, m]) => `<div data-medal="${s}"><b>${s}<small>秒</small></b><span>${m}</span></div>`).join("")}</div>
       <div class="long-countdown" id="long-countdown" aria-live="assertive" hidden></div>
       <div class="long-phases" aria-label="长音阶段"><span data-phase="inhale">吸气</span><span data-phase="blow">吹奏</span><span data-phase="hold">保持</span><span data-phase="release">收音</span></div>
@@ -209,9 +209,9 @@ export class LongTonePage {
     }
     const select = this.container?.querySelector("#long-note");
     if (select) select.value = note.id;
-    if (this.longBeginnerBanner) this.longBeginnerBanner.textContent = note.id === "low5"
-      ? "全按低音 5：六孔盖严，气流放缓；吹不响时先回到中音 2。"
-      : "均匀送气，保持风门和拾音距离稳定。";
+    if (this.longBeginnerBanner) this.longBeginnerBanner.innerHTML = note.id === "low5"
+      ? `${icon("warning")} <strong>全按低音 5 挑战</strong>：六孔盖严，气流放缓；吹不响时先回到中音 2。`
+      : `${icon("lightbulb")} <strong>长音练习要诀</strong>：均匀送气，保持风门和拾音距离稳定。`;
   }
 
   paint() {

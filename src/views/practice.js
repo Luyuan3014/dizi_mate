@@ -43,7 +43,7 @@ export function practicePage(state, stats) {
         <div class="practice-tabs" aria-label="练习方式"><span class="selected">${icon("hand")} 看指法，跟着吹</span><button data-action="notation">${icon("book")} 简谱怎么看？${icon("chevron")}</button></div>
         <div class="target-note-row"><div class="target-note">${noteMarkup(state.note)}<div><strong>${state.note.solfege} <span>${state.note.low ? "低音" : state.note.high ? "高音" : "中音"} · ${pitchNameFor(state.note, state.key)}</span></strong><p>${state.note.title}</p></div></div><button class="button button-outline listen-button" data-action="listen">${icon(state.demo ? "pause" : "volume")}<span>${state.demo ? "停止示范" : "听听这个音"}</span></button></div>
         ${fluteDiagram(state.note, state)}
-        <div class="fingering-caption"><span><i class="legend-hole closed"></i>按住（润玉指触）</span><span><i class="legend-hole"></i>松开（通透内膛）</span>${state.note.holes.includes(0.5) ? '<span><i class="legend-hole half"></i>半孔</span>' : ""}<span class="caption-tip">💡 点击吹孔试听，点击音孔可试按</span><button data-action="fingering">查看全部指法 ${icon("arrow")}</button></div>
+        <div class="fingering-caption"><span><i class="legend-hole closed"></i>按住（润玉指触）</span><span><i class="legend-hole"></i>松开（通透内膛）</span>${state.note.holes.includes(0.5) ? '<span><i class="legend-hole half"></i>半孔</span>' : ""}<span class="caption-tip">${icon("lightbulb")} 点击吹孔试听，点击音孔可试按</span><button data-action="fingering">查看全部指法 ${icon("arrow")}</button></div>
         <div class="breath-tip"><span class="tip-icon">${icon("leaf")}</span><div><strong>${state.note.overblow ? "试着集中气流" : "给你一个小提示"}</strong><p>${state.note.tip}</p></div></div>
         <div class="score-strip"><div class="score-label"><span>${state.lesson.name || "这次练习的音"}</span><small>${state.lesson.sequence.length > 3 ? "一个数字，就是一拍" : "点击数字，看看指法"}</small></div><div class="score-notes">${state.lesson.sequence.map((id, index) => {
           const noteObj = NOTES.find((n) => n.id === id);
@@ -292,7 +292,7 @@ export class PracticePage {
     // 3. Fingering caption half-hole indicator
     const captionTip = this.container.querySelector(".fingering-caption");
     if (captionTip) {
-      captionTip.innerHTML = `<span><i class="legend-hole closed"></i>按住（润玉指触）</span><span><i class="legend-hole"></i>松开（通透内膛）</span>${note.holes.includes(0.5) ? '<span><i class="legend-hole half"></i>半孔</span>' : ""}<span class="caption-tip">💡 点击吹孔试听，点击音孔可试按</span><button data-action="fingering">查看全部指法 ${icon("arrow")}</button>`;
+      captionTip.innerHTML = `<span><i class="legend-hole closed"></i>按住（润玉指触）</span><span><i class="legend-hole"></i>松开（通透内膛）</span>${note.holes.includes(0.5) ? '<span><i class="legend-hole half"></i>半孔</span>' : ""}<span class="caption-tip">${icon("lightbulb")} 点击吹孔试听，点击音孔可试按</span><button data-action="fingering">查看全部指法 ${icon("arrow")}</button>`;
     }
 
     // 4. Update breath tip
