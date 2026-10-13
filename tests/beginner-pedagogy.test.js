@@ -6,6 +6,7 @@ import { practicePage } from "../src/views/practice.js";
 import { fingeringPage } from "../src/views/fingering.js";
 import { longTonePage } from "../src/views/long-tone.js";
 import { dialogView } from "../src/views/settings.js";
+import { practiceFeedback } from "../src/components/shared.js";
 
 test("initial state initializes to breath focus and low-resistance note", () => {
   const state = createInitialState();
@@ -35,6 +36,17 @@ test("practicePage renders progressive lesson details and journey grid", () => {
   assert.ok(markup.includes("指气初合：轻松吹出三个音"));
   assert.ok(markup.includes("向下延展：攻克全按低音"));
   assert.ok(markup.includes("两只老虎"));
+  assert.ok(markup.includes("开始陪练"));
+  assert.ok(markup.includes("第 1 / 1 步"));
+  assert.ok(markup.includes("3 分钟"));
+  assert.ok(practicePage({ ...state, practiceTargetMinutes: 0 }, { seconds: 0, notes: 0 }).includes("自由练习"));
+});
+
+test("first-practice feedback always explains direction, reason, and next action", () => {
+  assert.deepEqual(practiceFeedback({ rms: 0 }).state, "no-signal");
+  assert.equal(practiceFeedback({ rms: 0 }).action.length > 0, true);
+  assert.equal(practiceFeedback({ frequency: 500, cents: -60, tolerance: 35 }).state, "low-pitch");
+  assert.equal(practiceFeedback({ frequency: 500, cents: 0, tolerance: 35, stable: true }).state, "stable");
 });
 
 test("fingeringPage renders silent fingering drill and seal check guide", () => {
