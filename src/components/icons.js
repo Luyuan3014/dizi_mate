@@ -1,4 +1,7 @@
 const paths = {
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  warning: '<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/>',
+  lightbulb: '<path d="M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0c-1 1-2 2-2 4h-4c0-2-1-3-2-4Z"/>',
   leaf: '<path d="M19 4C9 3 3 8 5 15c2 7 14 6 14-11Z"/><path d="m5 20 9-10M9 15l-1-4m4 1 4 1"/>',
   home: '<path d="m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10"/>',
   hand: '<path d="M8 12V6a2 2 0 0 1 4 0v5-7a2 2 0 0 1 4 0v7-5a2 2 0 0 1 4 0v9c0 5-3 7-7 7-3 0-5-2-7-5l-3-4a2 2 0 0 1 3-2l2 2"/>',
