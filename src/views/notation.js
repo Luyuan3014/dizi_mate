@@ -139,9 +139,12 @@ export function notationPage(state, currentFilter = "all") {
       ${filteredLessons
         .map((item) => {
           const originalIndex = notationLessons.indexOf(item);
-          return `<article class="card notation-card" data-card-index="${originalIndex}">
+          const lessonId = `notation-${originalIndex}`;
+          const completed = (state.notationProgress || []).includes(lessonId);
+          return `<article class="card notation-card ${completed ? "is-complete" : ""}" data-card-index="${originalIndex}" data-lesson-id="${lessonId}" aria-label="${item.title}${completed ? "，已学过" : "，未学"}">
             <div class="notation-card-header">
               <span class="section-kicker">0${originalIndex + 1} / ${item.label}</span>
+              <span class="notation-completion">${completed ? `${icon("check")} 已学过` : "待学习"}</span>
               <span class="playing-indicator" aria-hidden="true"><span></span><span></span><span></span></span>
             </div>
             <div class="notation-example" aria-label="${item.label} 示例">${item.symbol.replace(/<span class="interactive-note([^\"]*)" data-note="([^\"]+)">([\s\S]*?)<\/span>/g, '<button type="button" class="interactive-note$1" data-note="$2" aria-label="试听简谱音符 $2">$3</button>')}</div>
@@ -151,13 +154,10 @@ export function notationPage(state, currentFilter = "all") {
               <button class="button-link" data-action="notation-demo" data-demo="${originalIndex}">
                 ${icon("volume")} 听听这个例子 ${icon("arrow")}
               </button>
-              ${
-                item.songId
-                  ? `<button class="button button-outline mini-cta" data-action="practice-song" data-song-id="${item.songId}">
-                      去吹这段 ${icon("arrow")}
-                    </button>`
-                  : ""
-              }
+              <button class="button button-outline mini-cta" data-action="practice-notation" data-demo="${originalIndex}">
+                去练习 ${icon("arrow")}
+              </button>
+              <button class="button-link notation-complete-action" data-action="toggle-complete" data-lesson-id="${lessonId}" aria-pressed="${completed}">${completed ? "标记为未学" : "标记为已学会"}</button>
             </div>
           </article>`;
         })
@@ -182,6 +182,7 @@ export class NotationPage {
     this.demoTimer = null;
     this.demoGeneration = 0;
     this.boundClickHandler = this.handleClick.bind(this);
+    this.boundKeydownHandler = this.handleKeydown.bind(this);
   }
 
   mount(container) {
@@ -189,19 +190,44 @@ export class NotationPage {
     const state = this.context.store.getState();
     this.container.innerHTML = notationPage(state, this.currentFilter);
     this.container.addEventListener("click", this.boundClickHandler);
+    this.container.addEventListener("keydown", this.boundKeydownHandler);
+    this.unsubscribe = this.context.store.subscribe((state, changedKeys) => {
+      if (changedKeys.has("notationProgress") && this.container) this.container.innerHTML = notationPage(state, this.currentFilter);
+    });
   }
 
   unmount() {
     this.stopNotationDemo();
     if (this.container) {
       this.container.removeEventListener("click", this.boundClickHandler);
+      this.container.removeEventListener("keydown", this.boundKeydownHandler);
       this.container.innerHTML = "";
       this.container = null;
     }
+    this.unsubscribe?.();
+    this.unsubscribe = null;
   }
 
   update() {
     // Keep filter selection consistent if state updates
+  }
+
+  handleKeydown(event) {
+    const noteEl = event.target.closest(".interactive-note");
+    if (!noteEl || !noteEl.dataset.note || !["Enter", " "].includes(event.key)) return;
+    event.preventDefault();
+    this.playSingleNote(noteEl);
+  }
+
+  playSingleNote(noteEl) {
+    const note = NOTES.find((n) => n.id === noteEl.dataset.note);
+    if (!note) return;
+    const state = this.context.store.getState();
+    this.context.audioService.engine.tone(frequencyFor(note, state.key, state.reference), 0.6);
+    noteEl.classList.remove("note-tapped");
+    void noteEl.offsetWidth;
+    noteEl.classList.add("note-tapped");
+    this.context.shell.toast(`试听：${noteLabel(note)} (${pitchNameFor(note, state.key)}) · ${Math.round(frequencyFor(note, state.key, state.reference))} Hz`);
   }
 
   stopNotationDemo() {
@@ -291,22 +317,8 @@ export class NotationPage {
     // 1. Check if an interactive note was clicked
     const noteEl = event.target.closest(".interactive-note");
     if (noteEl && noteEl.dataset.note) {
-      const noteId = noteEl.dataset.note;
-      const note = NOTES.find((n) => n.id === noteId);
-      if (note) {
-        const state = this.context.store.getState();
-        this.context.audioService.engine.tone(
-          frequencyFor(note, state.key, state.reference),
-          0.6,
-        );
-        noteEl.classList.remove("note-tapped");
-        void noteEl.offsetWidth;
-        noteEl.classList.add("note-tapped");
-        this.context.shell.toast(
-          `试听：${noteLabel(note)} (${pitchNameFor(note, state.key)}) · ${Math.round(frequencyFor(note, state.key, state.reference))} Hz`,
-        );
-        return;
-      }
+      this.playSingleNote(noteEl);
+      return;
     }
 
     const button = event.target.closest("[data-action]");
@@ -346,6 +358,17 @@ export class NotationPage {
         note,
         customHoles: null,
       });
+      this.context.router.navigate("practice");
+    } else if (action === "toggle-complete") {
+      this.context.store.toggleNotationProgress(button.dataset.lessonId);
+    } else if (action === "practice-notation") {
+      const item = notationLessons[Number(button.dataset.demo)];
+      if (!item) return;
+      const song = item.songId ? SONGS.find((candidate) => candidate.id === item.songId) : null;
+      const lesson = song ? { id: song.id, name: song.title, subtitle: song.subtitle, sequence: song.sequence, lyrics: song.lyrics, instruction: song.tip, stage: "曲谱练习" } : { id: `notation-practice-${button.dataset.demo}`, name: item.title, subtitle: item.label, sequence: item.sequence.filter(Boolean), instruction: item.content, stage: "简谱练习" };
+      const note = NOTES.find((n) => n.id === lesson.sequence[0]) || NOTES[0];
+      this.stopNotationDemo();
+      this.context.store.setState({ passed: new Set(), lesson, index: 0, note, customHoles: null });
       this.context.router.navigate("practice");
     } else if (action === "lesson") {
       const lesson = LESSONS.find((l) => l.id === "song") || LESSONS[LESSONS.length - 1];
