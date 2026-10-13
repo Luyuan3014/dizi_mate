@@ -1,3 +1,4 @@
+import { updateMicControls } from "../components/microphone.js";
 import {
   NOTES,
   frequencyFor,
@@ -38,6 +39,7 @@ export class TunerPage {
     this.unsubscribe = null;
     this.tunerNoteId = null;
     this.boundClickHandler = this.handleClick.bind(this);
+    this.boundChangeHandler = this.handleChange.bind(this);
   }
 
   mount(container) {
@@ -49,6 +51,7 @@ export class TunerPage {
     this.updateMicUI();
 
     this.container.addEventListener("click", this.boundClickHandler);
+    this.container.addEventListener("change", this.boundChangeHandler);
 
     this.unsubscribe = this.context.store.subscribe((state, changedKeys) => {
       this.update(state, changedKeys);
@@ -63,6 +66,7 @@ export class TunerPage {
     }
     if (this.container) {
       this.container.removeEventListener("click", this.boundClickHandler);
+      this.container.removeEventListener("change", this.boundChangeHandler);
       this.container.innerHTML = "";
       this.container = null;
     }
@@ -95,7 +99,8 @@ export class TunerPage {
   }
 
   update(state, changedKeys) {
-    if (changedKeys.has("mic")) {
+    if (changedKeys.has("micLevel") || changedKeys.has("micNoise")) updateMicControls(this.container, state, { statusChanged: false });
+    if (changedKeys.has("mic") || changedKeys.has("micStatus")) {
       this.updateMicUI();
     }
     if (changedKeys.has("tolerance")) {
@@ -110,19 +115,8 @@ export class TunerPage {
   updateMicUI() {
     if (!this.container) return;
     const state = this.context.store.getState();
-    const active = state.mic === "on";
-    const requesting = state.mic === "requesting";
-
-    if (this.micButton) {
-      this.micButton.innerHTML = `${icon(active || requesting ? "pause" : "mic")} ${active ? "暂停陪练，歇一会儿" : requesting ? "等待授权 · 点击可取消" : "开启麦克风，试着吹"}`;
-    }
-    if (this.micState) {
-      this.micState.innerHTML = `<i></i>${active ? "正在聆听" : requesting ? "等待授权" : "等待开启"}`;
-      this.micState.classList.toggle("connected", active);
-    }
-    if (!active) {
-      this.paint(null);
-    }
+    updateMicControls(this.container, state);
+    if (state.mic !== "on") this.paint(null);
   }
 
   paint(frequency) {
@@ -205,6 +199,12 @@ export class TunerPage {
     const action = button.getAttribute("data-action");
     if (action === "mic") {
       this.context.audioService.startMic();
+    }
+  }
+
+  handleChange(event) {
+    if (event.target.id === "mic-mode") {
+      this.context.store.setState({ micMode: event.target.value === "compatible" ? "compatible" : "precise" });
     }
   }
 }

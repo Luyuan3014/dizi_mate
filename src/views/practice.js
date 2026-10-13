@@ -1,3 +1,4 @@
+import { updateMicControls } from "../components/microphone.js";
 import {
   metronomeView,
   updateMetronomeUI,
@@ -208,6 +209,7 @@ export class PracticePage {
   }
 
   update(state, changedKeys) {
+    if (changedKeys.has("micLevel") || changedKeys.has("micNoise")) updateMicControls(this.container, state, { statusChanged: false });
     if (changedKeys.has("lesson")) {
       const notes = this.container?.querySelector(".score-notes");
       if (notes) notes.innerHTML = state.lesson.sequence.map((id, index) => {
@@ -230,7 +232,7 @@ export class PracticePage {
     if (changedKeys.has("passed")) {
       this.updatePassedNotes(state);
     }
-    if (changedKeys.has("mic")) {
+    if (changedKeys.has("mic") || changedKeys.has("micStatus")) {
       this.updateMicUI();
     }
     if (changedKeys.has("metronome")) {
@@ -352,31 +354,12 @@ export class PracticePage {
   updateMicUI() {
     if (!this.container) return;
     const state = this.context.store.getState();
-    const active = state.mic === "on";
-    const requesting = state.mic === "requesting";
-
-    if (this.micButton) {
-      this.micButton.innerHTML = `${icon(active || requesting ? "pause" : "mic")} ${active ? "暂停陪练，歇一会儿" : requesting ? "等待授权 · 点击可取消" : "开启麦克风，试着吹"}`;
-    }
-    if (this.listeningOrb) {
-      this.listeningOrb.classList.toggle("listening", active);
-    }
-    if (this.micState) {
-      this.micState.innerHTML = `<i></i>${active ? "正在聆听" : requesting ? "等待授权" : "等待开启"}`;
-      this.micState.classList.toggle("connected", active);
-    }
-
-    if (!active) {
+    updateMicControls(this.container, state);
+    this.listeningOrb?.classList.toggle("listening", state.mic === "on");
+    if (state.mic !== "on") {
       this.waveform?.classList.remove("active");
-      this.container.querySelector(".flute-diagram")?.classList.remove("in-tune");
       if (this.pitchIndicator) this.pitchIndicator.hidden = true;
       this.setText(this.actualPitch, "—");
-      this.setFeedback(
-        requesting ? "允许麦克风，一起试试" : state.lesson.focus === "fingering" ? "静音指法阶段" : "我在这里，听你吹奏",
-        requesting
-          ? "在浏览器的权限提示中选择“允许”。"
-          : "不怕吹错，每一声都是进步。",
-      );
       this.setText(this.liveProgress, "");
     }
   }
@@ -619,6 +602,10 @@ export class PracticePage {
   handleChange(event) {
     const field = event.target;
     if (this.karaoke?.handleChange(field)) return;
+    if (field.id === "mic-mode") {
+      this.context.store.setState({ micMode: field.value === "compatible" ? "compatible" : "precise" });
+      return;
+    }
     if (field.id === "metro-bpm" || field.id === "metro-beats") {
       const m = this.context.store.getState().metronome;
       const wasRunning = this.context.audioService.metronome.running;

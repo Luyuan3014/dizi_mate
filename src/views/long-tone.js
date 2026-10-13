@@ -1,3 +1,4 @@
+import { updateMicControls } from "../components/microphone.js";
 import {
   NOTES,
   noteLabel,
@@ -153,7 +154,8 @@ export class LongTonePage {
   }
 
   update(state, changedKeys) {
-    if (changedKeys.has("mic")) {
+    if (changedKeys.has("micLevel") || changedKeys.has("micNoise")) updateMicControls(this.container, state, { statusChanged: false });
+    if (changedKeys.has("mic") || changedKeys.has("micStatus")) {
       this.updateMicUI();
     }
     if (
@@ -169,16 +171,8 @@ export class LongTonePage {
   updateMicUI() {
     if (!this.container) return;
     const state = this.context.store.getState();
-    const active = state.mic === "on";
-    const requesting = state.mic === "requesting";
+    updateMicControls(this.container, state);
 
-    if (this.micButton) {
-      this.micButton.innerHTML = `${icon(active || requesting ? "pause" : "mic")} ${active ? "暂停陪练，歇一会儿" : requesting ? "等待授权 · 点击可取消" : "开启麦克风，试着吹"}`;
-    }
-    if (this.micState) {
-      this.micState.innerHTML = `<i></i>${active ? "正在聆听" : requesting ? "等待授权" : "等待开启"}`;
-      this.micState.classList.toggle("connected", active);
-    }
   }
 
   updateNoteDetails(state) {
@@ -332,6 +326,10 @@ export class LongTonePage {
   }
 
   handleChange(event) {
+    if (event.target.id === "mic-mode") {
+      this.context.store.setState({ micMode: event.target.value === "compatible" ? "compatible" : "precise" });
+      return;
+    }
     if (event.target.id === "long-note") {
       this.finish();
       const note =

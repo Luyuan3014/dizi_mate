@@ -119,23 +119,23 @@ export function notationPage(state, currentFilter = "all") {
   )}
     <div class="notation-nav-bar">
       <div class="notation-filter-tabs" role="tablist" aria-label="简谱分类">
-        <button class="filter-tab ${currentFilter === "all" ? "active" : ""}" data-action="filter" data-filter="all" role="tab" aria-selected="${currentFilter === "all"}">
+        <button id="notation-tab-all" class="filter-tab ${currentFilter === "all" ? "active" : ""}" data-action="filter" data-filter="all" role="tab" aria-controls="notation-panel" aria-selected="${currentFilter === "all"}">
           全部 <span class="filter-badge">${counts.all}</span>
         </button>
-        <button class="filter-tab ${currentFilter === "basics" ? "active" : ""}" data-action="filter" data-filter="basics" role="tab" aria-selected="${currentFilter === "basics"}">
+        <button id="notation-tab-basics" class="filter-tab ${currentFilter === "basics" ? "active" : ""}" data-action="filter" data-filter="basics" role="tab" aria-controls="notation-panel" aria-selected="${currentFilter === "basics"}">
           基础符号 <span class="filter-badge">${counts.basics}</span>
         </button>
-        <button class="filter-tab ${currentFilter === "rhythm" ? "active" : ""}" data-action="filter" data-filter="rhythm" role="tab" aria-selected="${currentFilter === "rhythm"}">
+        <button id="notation-tab-rhythm" class="filter-tab ${currentFilter === "rhythm" ? "active" : ""}" data-action="filter" data-filter="rhythm" role="tab" aria-controls="notation-panel" aria-selected="${currentFilter === "rhythm"}">
           时值节奏 <span class="filter-badge">${counts.rhythm}</span>
         </button>
-        <button class="filter-tab ${currentFilter === "phrases" ? "active" : ""}" data-action="filter" data-filter="phrases" role="tab" aria-selected="${currentFilter === "phrases"}">
+        <button id="notation-tab-phrases" class="filter-tab ${currentFilter === "phrases" ? "active" : ""}" data-action="filter" data-filter="phrases" role="tab" aria-controls="notation-panel" aria-selected="${currentFilter === "phrases"}">
           入门短句谱 <span class="filter-badge">${counts.phrases}</span>
         </button>
       </div>
       <div class="notation-hint">${icon("sparkle")} 点击谱中任意音符可单独试听</div>
     </div>
 
-    <div class="notation-grid">
+    <div class="notation-grid" id="notation-panel" role="tabpanel" aria-labelledby="notation-tab-${currentFilter === "all" ? "all" : currentFilter}" tabindex="0">
       ${filteredLessons
         .map((item) => {
           const originalIndex = notationLessons.indexOf(item);
@@ -144,7 +144,7 @@ export function notationPage(state, currentFilter = "all") {
               <span class="section-kicker">0${originalIndex + 1} / ${item.label}</span>
               <span class="playing-indicator" aria-hidden="true"><span></span><span></span><span></span></span>
             </div>
-            <div class="notation-example" aria-label="${item.label} 示例">${item.symbol}</div>
+            <div class="notation-example" aria-label="${item.label} 示例">${item.symbol.replace(/<span class="interactive-note([^\"]*)" data-note="([^\"]+)">([\s\S]*?)<\/span>/g, '<button type="button" class="interactive-note$1" data-note="$2" aria-label="试听简谱音符 $2">$3</button>')}</div>
             <h2>${item.title}</h2>
             <p>${item.content}</p>
             <div class="notation-card-actions">
