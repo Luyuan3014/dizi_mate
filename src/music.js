@@ -338,7 +338,7 @@ export function readSaved(storage) {
   try {
     const saved = JSON.parse(storage.getItem("dizimate-v1"));
     if (!saved || typeof saved !== "object") return defaults;
-    return {
+    const result = {
       key: Object.hasOwn(KEYS, saved.key) ? saved.key : "E",
       reference:
         Number.isFinite(saved.reference) &&
@@ -365,6 +365,14 @@ export function readSaved(storage) {
             .slice(-100)
         : [],
     };
+    if ([3, 5, 0].includes(saved.practiceTargetMinutes)) result.practiceTargetMinutes = saved.practiceTargetMinutes;
+    if (Number.isFinite(saved.practiceElapsedSeconds) && saved.practiceElapsedSeconds >= 0) result.practiceElapsedSeconds = Math.min(saved.practiceElapsedSeconds, 86400);
+    if (typeof saved.practiceElapsedDate === "string") result.practiceElapsedDate = saved.practiceElapsedDate;
+    if (saved.practiceResume && typeof saved.practiceResume === "object" && LESSONS.some((lesson) => lesson.id === saved.practiceResume.lessonId)) result.practiceResume = {
+      lessonId: saved.practiceResume.lessonId,
+      index: Number.isInteger(saved.practiceResume.index) && saved.practiceResume.index >= 0 ? saved.practiceResume.index : 0,
+    };
+    return result;
   } catch {
     return defaults;
   }

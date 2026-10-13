@@ -12,15 +12,18 @@ export function createInitialState() {
     saved = readSaved({ getItem: () => null });
   }
 
-  const initialLesson = LESSONS[0];
-  const initialNote = NOTES.find((n) => n.id === initialLesson.sequence[0]) || NOTES[0];
+  const savedLesson = saved.practiceResume && LESSONS.find((lesson) => lesson.id === saved.practiceResume.lessonId);
+  const initialLesson = savedLesson || LESSONS[0];
+  const initialIndex = savedLesson ? Math.min(saved.practiceResume.index, initialLesson.sequence.length - 1) : 0;
+  const initialNote = NOTES.find((n) => n.id === initialLesson.sequence[initialIndex]) || NOTES[0];
+  const today = new Date().toDateString();
 
   return {
     ...saved,
     reports: (() => { try { return typeof localStorage !== "undefined" ? readReports(localStorage) : []; } catch { return []; } })(),
     page: "practice",
     lesson: initialLesson,
-    index: 0,
+    index: initialIndex,
     note: initialNote,
     customHoles: null,
     mic: "off",
@@ -33,6 +36,10 @@ export function createInitialState() {
     sessionNotes: new Set(),
     sessionStarted: 0,
     metronome: { bpm: 60, beats: 4, open: false, running: false },
+    practiceTargetMinutes: saved.practiceTargetMinutes ?? 3,
+    practiceElapsedSeconds: saved.practiceElapsedDate === today ? (saved.practiceElapsedSeconds ?? 0) : 0,
+    practiceElapsedDate: today,
+    practiceResume: saved.practiceResume || null,
     longNote: initialNote,
     longArmed: false,
     challenge: null,
@@ -49,6 +56,10 @@ export function saveSettings(state) {
           reference: state.reference,
           tolerance: state.tolerance,
           sessions: state.sessions,
+          practiceTargetMinutes: state.practiceTargetMinutes,
+          practiceElapsedSeconds: state.practiceElapsedSeconds,
+          practiceElapsedDate: state.practiceElapsedDate,
+          practiceResume: state.practiceResume,
         }),
       );
       localStorage.setItem("dizimate-reports-v1", JSON.stringify(state.reports || []));

@@ -115,6 +115,11 @@ export class AudioService {
       );
       if (seconds >= 1) {
         this.store.addSession(seconds, state.sessionNotes);
+        this.store.setState({
+          practiceElapsedSeconds: (state.practiceElapsedSeconds || 0) + seconds,
+          practiceResume: state.lesson ? { lessonId: state.lesson.id, index: state.index || 0 } : state.practiceResume,
+        });
+        this.store.save();
       }
     }
     this.confidence.reset();
