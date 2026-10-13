@@ -17,21 +17,27 @@ import {
   nearestNote,
 } from "../music.js";
 import { icon } from "../components/icons.js";
-import { hero, noteMarkup } from "../components/shared.js";
+import { hero, noteMarkup, practiceFeedback } from "../components/shared.js";
 import { fluteDiagram, getFluteClickTarget, mountFlute, unmountFlute } from "../components/flute.js";
 import { calculateTodayStats } from "../store.js";
 import { Karaoke, karaokeEntry } from "../components/karaoke.js";
 
 export function practicePage(state, stats) {
+  const targetMinutes = state.practiceTargetMinutes ?? 3;
+  const targetSeconds = targetMinutes ? targetMinutes * 60 : 0;
+  const elapsed = Math.max(0, state.practiceElapsedSeconds || 0);
+  const progress = targetSeconds ? Math.min(100, Math.round((elapsed / targetSeconds) * 100)) : 0;
+  const resume = state.practiceResume;
   return `${hero(
     "你好，今天也一起吹笛子吧",
     "从第一个音，<span>慢慢来。</span>",
     "不用先懂乐理。看一眼指法，听一听，再试着吹出你的声音。",
-    `<div class="heading-tools">${metronomeView(state)}<div class="daily-stats"><div><strong>${Math.floor(stats.seconds / 60)}<small>分钟</small></strong><span>今日练习</span></div><div class="stats-line"></div><div><strong>${stats.notes}<small>个音</small></strong><span>今日吹准</span></div><span class="stats-sprout">${icon("leaf")}</span></div></div>`,
+    `<div class="heading-tools"><div class="practice-goal" aria-label="今日陪练目标"><span class="goal-label">今天练 ${targetMinutes ? `${targetMinutes} 分钟` : "自由练习"}</span><div class="goal-progress"><i style="width:${progress}%"></i></div><small id="practice-goal-time">已练 ${Math.floor(elapsed / 60)} 分 ${elapsed % 60} 秒${targetSeconds ? ` · ${progress}%` : ""}</small><div class="goal-options" role="group" aria-label="设置今日目标"><button data-action="target" data-minutes="3" class="${targetMinutes === 3 ? "selected" : ""}">3 分钟</button><button data-action="target" data-minutes="5" class="${targetMinutes === 5 ? "selected" : ""}">5 分钟</button><button data-action="target" data-minutes="0" class="${targetMinutes === 0 ? "selected" : ""}">自由</button></div></div>${metronomeView(state)}<div class="daily-stats"><div><strong>${Math.floor(stats.seconds / 60)}<small>分钟</small></strong><span>今日练习</span></div><div class="stats-line"></div><div><strong>${stats.notes}<small>个音</small></strong><span>今日吹准</span></div><span class="stats-sprout">${icon("leaf")}</span></div></div>`,
   )}
     <div class="practice-grid">
       <section class="practice-card card" aria-label="指法练习">
         <div class="card-top"><span class="section-kicker"><span class="tiny-dot"></span> 今日的小练习</span><span class="level-tag">${state.lesson.badge || `零基础 · 第 ${LESSONS.findIndex((lesson) => lesson.id === state.lesson.id) + 1} 步`}</span></div>
+        <div class="practice-step" aria-live="polite"><strong>第 ${Math.min(state.index + 1, state.lesson.sequence.length)} / ${state.lesson.sequence.length} 步</strong><span>${resume ? "已恢复上次练习位置" : "先听参考音，再试着吹响"}</span></div>
         <div class="lesson-heading"><div><h2>${state.lesson.name}</h2><p>${state.lesson.instruction}</p></div><button class="round-help" data-action="help" aria-label="查看吹奏方法">${icon("help")}</button></div>
         <div class="practice-tabs" aria-label="练习方式"><span class="selected">${icon("hand")} 看指法，跟着吹</span><button data-action="notation">${icon("book")} 简谱怎么看？${icon("chevron")}</button></div>
         <div class="target-note-row"><div class="target-note">${noteMarkup(state.note)}<div><strong>${state.note.solfege} <span>${state.note.low ? "低音" : state.note.high ? "高音" : "中音"} · ${pitchNameFor(state.note, state.key)}</span></strong><p>${state.note.title}</p></div></div><button class="button button-outline listen-button" data-action="listen">${icon(state.demo ? "pause" : "volume")}<span>${state.demo ? "停止示范" : "听听这个音"}</span></button></div>
@@ -49,10 +55,10 @@ export function practicePage(state, stats) {
         <section class="companion-card" aria-label="实时音高陪练"><div class="companion-top"><span>${icon("sparkle")} 实时陪练</span><span class="mic-state" id="mic-state"><i></i>等待开启</span></div>
           ${karaokeEntry()}<div id="karaoke-panel" hidden></div><div id="free-companion">
           <div class="listening-orb" id="listening-orb"><div class="orb-ring"></div><div class="orb-ring second"></div><span>${icon("mic")}</span><i class="orb-spark spark-one"></i><i class="orb-spark spark-two"></i></div>
-          <h2 id="feedback-title" aria-live="polite" aria-atomic="true">我在这里，听你吹奏</h2><p class="feedback-copy" id="feedback-copy">不怕吹错，每一声都是进步。</p>
+          <h2 id="feedback-title" aria-live="polite" aria-atomic="true">准备好后，吹一声</h2><p class="feedback-copy" id="feedback-copy">参考音会先告诉你目标。</p><p class="feedback-reason" id="feedback-reason">先听参考音，再试着吹。</p><span class="feedback-state" id="feedback-state">等待声音</span>
           <div class="waveform" id="waveform" aria-hidden="true">${Array.from({ length: 35 }, (_, i) => `<i style="--wave:${8 + Math.sin(i * 1.1) ** 2 * (13 + Math.sin(i / 6) ** 2 * 21)}px;--delay:${i * -0.075}s"></i>`).join("")}</div>
           <div class="pitch-panel"><div class="pitch-values"><span>当前音高 <strong id="actual-pitch">—</strong></span><span>目标 <strong id="target-pitch">${noteLabel(state.note)} (${pitchNameFor(state.note, state.key)}) · ${Math.round(frequencyFor(state.note, state.key, state.reference))} Hz</strong></span></div><div class="pitch-scale"><span class="pitch-safe-zone" style="left:${50 - state.tolerance * 0.46}%;width:${state.tolerance * 0.92}%"></span><i id="pitch-indicator" hidden></i><span class="pitch-center"></span></div><div class="pitch-scale-labels"><span>偏低</span><span>刚刚好</span><span>偏高</span></div></div>
-          <button class="button mic-button" id="mic-button" data-action="mic">${icon("mic")} 开启麦克风，试着吹</button><div class="privacy-note">${icon("shield")} 声音只在本机处理，不录音、不上传</div>
+          <button class="button mic-button" id="mic-button" data-action="mic">${icon("mic")} 开始陪练</button><div class="privacy-note">${icon("shield")} 声音只在本机处理，不录音、不上传</div>
           <div class="live-progress" id="live-progress"></div></div>
         </section>
         <button class="small-help-card" data-action="help"><span class="help-card-icon">${icon("help")}</span><span><strong>怎么还吹不响？</strong><small>先别急，试试这 3 个小动作</small></span>${icon("arrow")}</button>
@@ -96,6 +102,8 @@ export class PracticePage {
     this.karaoke = new Karaoke(this.context, this.container);
     this.updateMicUI();
     this.updateMetronomeUI();
+    this.updatePracticeGoal();
+    this.clockTimer = setInterval(() => this.updatePracticeGoal(), 500);
 
     this.container.addEventListener("click", this.boundClickHandler);
     this.container.addEventListener("input", this.boundInputHandler);
@@ -108,6 +116,8 @@ export class PracticePage {
   }
 
   unmount() {
+    clearInterval(this.clockTimer);
+    this.clockTimer = null;
     this.karaoke?.unmount();
     unmountFlute(this.container);
     if (this.unsubscribe) {
@@ -132,6 +142,8 @@ export class PracticePage {
     this.pitchSafeZone = this.container.querySelector(".pitch-safe-zone");
     this.feedbackTitle = this.container.querySelector("#feedback-title");
     this.feedbackCopy = this.container.querySelector("#feedback-copy");
+    this.feedbackReason = this.container.querySelector("#feedback-reason");
+    this.feedbackState = this.container.querySelector("#feedback-state");
     this.liveProgress = this.container.querySelector("#live-progress");
     this.waveform = this.container.querySelector("#waveform");
     this.micButton = this.container.querySelector("#mic-button");
@@ -148,9 +160,10 @@ export class PracticePage {
     if (el && el.textContent !== text) el.textContent = text;
   }
 
-  setFeedback(title, copy) {
+  setFeedback(title, copy, action = "") {
     this.setText(this.feedbackTitle, title);
     this.setText(this.feedbackCopy, copy);
+    this.setText(this.feedbackReason, action);
     if (this.karaoke?.mode === "song" && !["countdown", "running"].includes(this.karaoke.status)) {
       this.setText(this.container?.querySelector("#karaoke-status"), `${title} · ${copy}`);
     }
@@ -174,6 +187,7 @@ export class PracticePage {
       index,
       customHoles: null,
       note,
+      practiceResume: { lessonId: state.lesson.id, index },
     });
   }
 
@@ -204,6 +218,7 @@ export class PracticePage {
       index: 0,
       note,
       customHoles: null,
+      practiceResume: { lessonId: lesson.id, index: 0 },
     });
     this.context.router.navigate("practice");
   }
@@ -244,6 +259,7 @@ export class PracticePage {
     if (changedKeys.has("sessions")) {
       this.updateStatsUI();
     }
+    if (changedKeys.has("practiceTargetMinutes") || changedKeys.has("practiceElapsedSeconds") || changedKeys.has("sessionStarted")) this.updatePracticeGoal();
   }
 
   updateNoteView(state) {
@@ -355,6 +371,8 @@ export class PracticePage {
     if (!this.container) return;
     const state = this.context.store.getState();
     updateMicControls(this.container, state);
+    const action = state.mic === "on" ? "暂停陪练" : state.micStatus === "requesting" ? "等待授权" : state.micStatus === "testing" ? "测试环境中" : "开始陪练";
+    if (this.micButton) this.micButton.innerHTML = `${icon(state.mic === "on" ? "pause" : "mic")} ${action}`;
     this.listeningOrb?.classList.toggle("listening", state.mic === "on");
     if (state.mic !== "on") {
       this.waveform?.classList.remove("active");
@@ -362,6 +380,7 @@ export class PracticePage {
       this.setText(this.actualPitch, "—");
       this.setText(this.liveProgress, "");
     }
+    if (this.feedbackState && state.micStatus === "idle") this.setText(this.feedbackState, "等待声音");
   }
 
   updateMetronomeUI() {
@@ -393,6 +412,20 @@ export class PracticePage {
     }
   }
 
+  updatePracticeGoal() {
+    if (!this.container) return;
+    const state = this.context.store.getState();
+    const current = state.practiceElapsedSeconds || 0;
+    const live = state.mic === "on" && state.sessionStarted ? current + Math.max(0, Math.floor((performance.now() - state.sessionStarted) / 1000)) : current;
+    const target = state.practiceTargetMinutes ? state.practiceTargetMinutes * 60 : 0;
+    const progress = target ? Math.min(100, Math.round((live / target) * 100)) : 0;
+    const time = this.container.querySelector("#practice-goal-time");
+    this.setText(time, `已练 ${Math.floor(live / 60)} 分 ${live % 60} 秒${target ? ` · ${progress}%` : ""}`);
+    const bar = this.container.querySelector(".goal-progress i");
+    if (bar) bar.style.width = `${progress}%`;
+    this.container.querySelectorAll("[data-action='target']").forEach((button) => button.classList.toggle("selected", Number(button.dataset.minutes) === state.practiceTargetMinutes));
+  }
+
   onAudioFrame({ frequency, rms }, { confidence }) {
     if (!this.container) return;
     const state = this.context.store.getState();
@@ -416,12 +449,7 @@ export class PracticePage {
     const bucket = confidence.update(now, good);
     const mark = `${state.lesson.id}:${state.index}:${state.note.id}`;
 
-    this.setText(
-      this.liveProgress,
-      state.passed.has(mark)
-        ? `✓ ${noteLabel(state.note)} 本轮已吹准 · 按自己的节奏继续`
-        : `音准信心 ${Math.round(bucket.progress * 100)}% · 多数时间保持绿区即可，轻微抖动没关系`,
-    );
+    this.setText(this.liveProgress, state.passed.has(mark) ? `✓ ${noteLabel(state.note)} 已吹准 · 可以进入下一音` : `当前步骤 ${Math.round(bucket.progress * 100)}% · 吹响后自动计时`);
 
     const fluteDiag = this.container.querySelector(".flute-diagram");
 
@@ -429,12 +457,9 @@ export class PracticePage {
       if (this.pitchIndicator) this.pitchIndicator.hidden = true;
       fluteDiag?.classList.remove("in-tune");
       this.setText(this.actualPitch, "—");
-      this.setFeedback(
-        rms > 0.015 ? "听到声音了，再稳一点" : "轻轻吹，我在听",
-        rms > 0.015
-          ? "还没识别出稳定音高，试着对准吹孔、减少周围杂音。"
-          : "盖严音孔，平稳送气。不需要大声。",
-      );
+      const feedback = practiceFeedback({ rms, tolerance: state.tolerance });
+      this.setFeedback(feedback.title, feedback.reason, feedback.action);
+      this.setText(this.feedbackState, feedback.direction);
       return;
     }
 
@@ -459,16 +484,17 @@ export class PracticePage {
       this.container
         .querySelectorAll(".score-notes .score-note")
         [state.index]?.classList.add("passed");
-      this.setFeedback("吹对啦，这一声很棒！", "想再巩固一次，或者点下一步，都很好。");
+      const feedback = practiceFeedback({ frequency, cents, tolerance: state.tolerance, stable: true });
+      this.setFeedback(feedback.title, `${noteLabel(state.note)} 已连续稳定 1.2 秒。`, feedback.action);
+      this.setText(this.feedbackState, feedback.direction);
     } else if (Math.abs(cents) > 150 && Math.abs(cents) < 950) {
-      this.setText(
-        this.feedbackCopy,
-        `现在更接近${noteLabel(nearestNote(frequency, state.key, state.reference))}。检查音孔是否盖严，再试一次。`,
-      );
-      this.setText(this.feedbackTitle, feedback.title);
+      const nearest = nearestNote(frequency, state.key, state.reference);
+      this.setFeedback(feedback.title, `现在更接近${noteLabel(nearest)}。${feedback.detail}`, feedback.detail);
+      this.setText(this.feedbackState, feedback.direction);
     } else {
-      this.setText(this.feedbackTitle, feedback.title);
-      this.setText(this.feedbackCopy, feedback.detail);
+      const next = practiceFeedback({ frequency, cents, tolerance: state.tolerance });
+      this.setFeedback(next.title, next.reason, next.action);
+      this.setText(this.feedbackState, next.direction);
     }
   }
 
@@ -477,10 +503,8 @@ export class PracticePage {
     if (this.pitchIndicator) this.pitchIndicator.hidden = true;
     this.setText(this.actualPitch, "—");
     this.container.querySelector(".flute-diagram")?.classList.remove("in-tune");
-    this.setFeedback(
-      "先听一听，再试着吹",
-      "播放参考音时暂停判断，避免把示范当成练习。",
-    );
+    this.setFeedback("先听一听，再试着吹", "播放参考音时暂停判断，避免把示范当成练习。", "听完后，按下开始陪练并吹一声。");
+    this.setText(this.feedbackState, "参考音播放中");
   }
 
   onBeat(beat, index) {
@@ -526,7 +550,12 @@ export class PracticePage {
     if (!button) return;
     const action = button.getAttribute("data-action");
 
-    if (action === "select-note") {
+    if (action === "target") {
+      const minutes = [0, 3, 5].includes(Number(button.dataset.minutes)) ? Number(button.dataset.minutes) : 3;
+      this.context.store.setState({ practiceTargetMinutes: minutes });
+      this.context.store.save();
+      this.updatePracticeGoal();
+    } else if (action === "select-note") {
       this.selectNote(Number(button.dataset.index));
     } else if (action === "lesson") {
       this.chooseLesson(button.dataset.lesson);
