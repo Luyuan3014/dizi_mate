@@ -24,6 +24,7 @@ export class AppShell {
 
   mount(state) {
     this.appEl.innerHTML = `
+      <a class="skip-link" href="#main-content">跳到主要内容</a>
       <aside class="sidebar">
         <a href="#practice" class="brand" aria-label="笛伴首页"><span class="brand-mark">${logo}</span><span><strong>笛伴<span class="brand-dot">.</span></strong><small>DIZIMATE</small></span></a>
         <div class="nav-label">我的音乐小天地</div>
@@ -39,7 +40,7 @@ export class AppShell {
       </aside>
       <div class="main-shell">
         <header class="topbar"><div class="breadcrumb">我的练习 <span>/</span> <strong id="topbar-title">${PAGE_TITLES[state.page] || PAGE_TITLES.practice}</strong></div><div class="topbar-actions"><span class="local-badge">${icon("shield")} 本地练习，安心吹奏</span><button class="instrument-select" data-action="settings">${icon("music")}<span id="topbar-instrument">${state.key} 调竹笛</span><span class="select-divider"></span><span>筒音作 5</span>${icon("down")}</button></div></header>
-        <main id="main-content"></main>
+        <main id="main-content" tabindex="-1" aria-labelledby="page-title"></main>
         <footer class="page-footer"><span>${icon("leaf")} 每一次呼吸，都在靠近音乐。</span><span>笛伴 DiziMate <i>·</i> 陪你慢慢来</span></footer>
       </div>
       <dialog id="modal" aria-labelledby="dialog-title"></dialog>
@@ -51,6 +52,7 @@ export class AppShell {
     this.topbarTitle = this.appEl.querySelector("#topbar-title");
     this.topbarInstrument = this.appEl.querySelector("#topbar-instrument");
     this.navLinks = this.appEl.querySelectorAll(".nav-link");
+    this.lastModalTrigger = null;
 
     this.bindEvents();
     return this.mainContent;
@@ -69,6 +71,7 @@ export class AppShell {
       if (!button) return;
       const action = button.getAttribute("data-action");
       if (action === "settings" || action === "help") {
+        this.lastModalTrigger = button;
         if (this.onModalOpen) this.onModalOpen(action);
       } else if (action === "close") {
         this.closeModal();
@@ -99,6 +102,11 @@ export class AppShell {
 
     this.modal.addEventListener("close", () => {
       if (this.onModalClose) this.onModalClose();
+      const trigger = this.lastModalTrigger;
+      this.lastModalTrigger = null;
+      if (trigger && typeof trigger.focus === "function") {
+        trigger.focus({ preventScroll: true });
+      }
     });
   }
 
@@ -111,6 +119,9 @@ export class AppShell {
     });
     if (this.topbarTitle) {
       this.topbarTitle.textContent = PAGE_TITLES[page] || PAGE_TITLES.practice;
+    }
+    if (typeof document !== "undefined") {
+      document.title = `${PAGE_TITLES[page] || PAGE_TITLES.practice} · 笛伴 DiziMate`;
     }
   }
 
@@ -133,12 +144,23 @@ export class AppShell {
   openModal(type, state) {
     if (!this.modal) return;
     this.modal.innerHTML = dialogView(type, state);
-    this.modal.showModal();
+    if (typeof this.modal.showModal === "function") this.modal.showModal();
+    else this.modal.setAttribute("open", "");
+    const firstField = this.modal.querySelector("input, select, button:not(.dialog-close), [tabindex]:not([tabindex='-1'])");
+    if (firstField) {
+      if (typeof queueMicrotask === "function") queueMicrotask(() => firstField.focus());
+      else firstField.focus();
+    }
   }
 
   closeModal() {
     if (this.modal && this.modal.open) {
       this.modal.close();
+    } else if (this.modal) {
+      this.modal.removeAttribute("open");
+      const trigger = this.lastModalTrigger;
+      this.lastModalTrigger = null;
+      trigger?.focus?.({ preventScroll: true });
     }
   }
 }
