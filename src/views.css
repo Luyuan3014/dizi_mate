@@ -294,6 +294,10 @@
 
 /* Tuner & Long-tone Views */
 .tuner-card, .long-tone-card { padding: 34px; }
+.tuner-mode { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+.tuner-mode .filter-tab { min-height: 44px; }
+.tuner-target-select { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: #536949; font-size: 12px; }
+.tuner-target-select select { border: 1px solid #ced7c2; border-radius: 7px; background: #fff; padding: 8px; color: #405937; font: inherit; }
 .tuner-dial { margin: 0 auto; max-width: 600px; text-align: center; padding: 18px 36px 26px; background: #f6f7f0; border-radius: 130px 130px 20px 20px; border: 1px solid #e1e6d8; transition: background .15s; }
 .tuner-dial.in-tune { background: #eaf3e2; border-color: #9eb78c; }
 .tuner-note { font-size: 104px; line-height: 1.3; min-height: 146px; padding-top: 18px; color: #42623b; }
@@ -305,9 +309,12 @@
 #tuner-needle { position: absolute; top: -6px; bottom: -6px; width: 3px; background: #af8350; transition: left 70ms linear; border-radius: 3px; }
 .in-tune #tuner-needle { background: #456c38; }
 #tuner-target { color: #758069; font-size: 12px; margin: 15px 0 0; }
-.tuner-notes { display: grid; grid-template-columns: repeat(16, minmax(0,1fr)); gap: 6px; margin: 30px 0; }
-.tuner-notes > span { text-align: center; border-radius: 9px; padding: 16px 0; color: #88957a; }
-.tuner-notes > span.active { background: #e2eed7; color: #385e32; box-shadow: inset 0 0 0 1px #afc39e; }
+.tuner-notes { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 30px 0; }
+.tuner-note-group { min-width: 0; }
+.tuner-note-group h3 { color: #829174; font-size: 11px; font-weight: 500; margin: 0 0 7px; text-align: center; }
+.tuner-note-group > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(42px, 1fr)); gap: 5px; }
+.tuner-note-group > div > span { text-align: center; border-radius: 9px; padding: 12px 0; color: #88957a; scroll-margin-inline: 45%; }
+.tuner-note-group > div > span.active { background: #e2eed7; color: #385e32; box-shadow: inset 0 0 0 1px #afc39e; }
 .tuner-fingering { text-align: center; min-height: 175px; }
 .tuner-fingering h3 { font-size: 16px; font-weight: 500; }
 .tuner-fingering p, .long-tip { font-size: 13px; line-height: 1.9; color: #748168; }
@@ -376,7 +383,8 @@ button:disabled { opacity: .5; cursor: default; }
   .tuner-dial { padding: 22px 14px; border-radius: 70px 70px 16px 16px; }
   .tuner-note { font-size: 82px; min-height: 125px; }
   .tuner-readings { gap: 8px 16px; font-size: 12px; }
-  .tuner-notes { grid-template-columns: repeat(8, minmax(0,1fr)); row-gap: 12px; }
+  .tuner-notes { grid-template-columns: 1fr; row-gap: 14px; }
+  .tuner-note-group > div { grid-template-columns: repeat(8, minmax(0,1fr)); }
   .hole-row { gap: 10px; }
   .hole-row i { width: 23px; height: 23px; }
   .hole-row > span { font-size: 9px; }
