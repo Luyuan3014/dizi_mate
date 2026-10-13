@@ -4,14 +4,30 @@ import { icon } from "./icons.js";
 
 export const escapeHTML = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
 const metric = (label, value, description) => `<div class="report-metric"><span>${label}</span><strong>${value === null ? "—" : value}<small>${value === null ? "" : "%"}</small></strong><p>${description}</p></div>`;
-export function performanceReport(report, actions = true) {
+export function reportSummary(report) {
+  if (report.score === null) return "这次没有收集到足够的有效音高，先检查麦克风距离与环境，再从慢速开始。";
+  if (!report.completed) return `这次完成了 ${Math.round(report.elapsed / report.duration * 100)}% 的旋律，先把未完成的乐句吹完整，再比较音准。`;
+  if (report.score >= 90) return "整首旋律完成得很稳，音准和连贯度都保持在良好状态。";
+  if (report.accuracy >= 80) return "音准基础已经建立，下一遍把起音和句尾收音做得更整齐。";
+  return "先放慢速度，把每个音吹满并保持气息，再逐步恢复原速。";
+}
+
+function comparisonMarkup(report, previous) {
+  if (!previous || previous.score === null || report.score === null) return "";
+  const delta = report.score - previous.score;
+  const direction = delta === 0 ? "与上次持平" : `${delta > 0 ? "比上次提高" : "比上次低"} ${Math.abs(delta)} 分`;
+  return `<p class="report-comparison">${direction} · 上次 ${previous.score} 分${report.score >= previous.score ? "，继续保持这组速度。" : "，建议先回到慢速练习。"}</p>`;
+}
+
+export function performanceReport(report, actions = true, previous = null) {
   const signal = report.score !== null;
   const grade = !signal ? "数据不足" : !report.completed ? "未完成演奏" : report.score >= 90 ? "表现出色" : report.score >= 75 ? "稳步进阶" : report.score >= 60 ? "继续巩固" : "从慢速开始";
   return `<article class="performance-report" aria-label="专业演奏报告">
     <div class="report-heading"><div><span class="section-kicker">${icon("chart")} 演奏分析 · ${report.completed ? "完整演奏" : "提前结束"}</span><h2>${escapeHTML(report.title)}<span>演奏报告</span></h2><p>${new Date(report.at).toLocaleString("zh-CN")} · ${escapeHTML(report.key)} 调 · ${report.bpm} BPM · A4 ${report.reference} Hz · 容差 ±${report.tolerance} 音分</p></div><div class="report-total"><strong>${signal ? report.score : "—"}</strong><span>${grade}${signal ? " · / 100" : ""}</span></div></div>
+    <p class="report-summary">${reportSummary(report)}</p>${comparisonMarkup(report, previous)}
     <div class="report-metrics">${metric("音准命中率", signal ? report.accuracy : null, "整段有效评估时间中落在容差内的比例")}${metric("起音节奏", signal ? report.rhythm : null, "在目标起拍附近识别到正确起音的音符比例")}${metric("音高稳定度", report.stability, "音符持续段内的音高波动，排除起音与收音过渡")}${metric("吹奏覆盖率", report.coverage, "识别到有效音高的时间比例")}</div>
     <div class="report-facts"><span>平均偏差 <b>${report.bias === null ? "—" : `${report.bias > 0 ? "+" : ""}${report.bias} 音分`}</b></span><span>未识别音符 <b>${report.missed} / ${report.rows.length}</b></span><span>演奏进度 <b>${Math.round(report.elapsed/report.duration*100)}%</b></span></div>
-    <div class="report-body"><section><h3>逐句复盘</h3><div class="phrase-results">${report.phrases.map((p) => `<div><span>${escapeHTML(p.label)}<small>第 ${p.from}–${p.to} 个音</small></span><div class="phrase-meter"><i style="width:${p.accuracy}%"></i></div><b>${p.accuracy}%</b></div>`).join("")}</div><p class="report-hint">绿条为本句音准命中率，漏吹和断档会降低结果。</p></section><section class="report-advice"><h3>下一次，重点练这些</h3><ol>${reportAdvice(report).map((text) => `<li>${escapeHTML(text)}</li>`).join("")}</ol></section></div>
+    <div class="report-body"><section><h3>逐句复盘</h3><div class="phrase-results">${report.phrases.map((p) => `<div><span>${escapeHTML(p.label)}<small>第 ${p.from}–${p.to} 个音</small></span><div class="phrase-meter"><i style="width:${p.accuracy}%"></i></div><b>${p.accuracy}%</b></div>`).join("")}</div><p class="report-hint">绿条为本句音准命中率，漏吹和断档会降低结果。</p></section><section class="report-advice"><h3>下次建议练习</h3><ol>${reportAdvice(report).map((text) => `<li>${escapeHTML(text)}</li>`).join("")}</ol></section></div>
     <details class="report-detail"><summary>查看逐音分析 · ${report.rows.length} 个音</summary><div class="report-table-wrap"><table><thead><tr><th>音符</th><th>音准</th><th>覆盖</th><th>平均偏差</th><th>波动 σ</th><th>起音偏差</th></tr></thead><tbody>${report.rows.map((r) => `<tr><td>${r.index+1} · ${noteLabel(NOTES.find((n) => n.id === r.id))}</td><td>${r.accuracy}%</td><td>${r.coverage}%</td><td>${r.bias === null ? "—" : `${r.bias > 0 ? "+" : ""}${r.bias} 音分`}</td><td>${r.spread === null ? "—" : `${r.spread} 音分`}</td><td>${r.onset === null ? "未识别" : `${r.onset > 0 ? "+" : ""}${r.onset} ms`}</td></tr>`).join("")}</tbody></table></div></details>
     <p class="report-method">评分：音准 50% + 起音节奏 20% + 吹奏覆盖 20% + 稳定度 10%（按音准折算）。静音与采样断档不计成绩，节拍声屏蔽窗口不计入评估。起音由音高变化或重新发声估算，同音连奏可能无法识别；结果受设备延迟、噪声和拾音影响，供练习参考。仅分析单音音高与时序，不能判断姿势、指法动作、音色或专业演奏等级。</p>
     ${actions ? `<div class="report-actions"><button class="button button-outline" data-action="karaoke-export" data-report="${escapeHTML(report.id)}">${icon("book")} 导出演奏报告</button><span data-save-status>报告已保存在本机 · 最近 20 份</span></div>` : ""}

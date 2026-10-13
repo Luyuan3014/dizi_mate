@@ -20,6 +20,8 @@ export class Karaoke {
     this.combo = 0;
     this.bestCombo = 0;
     this.trace = [];
+    this.lastDrawAt = -Infinity;
+    this.previousReport = null;
     this.panel = container.querySelector("#karaoke-panel");
     this.stage = container.querySelector("#karaoke-stage");
     this.render();
@@ -63,6 +65,7 @@ export class Karaoke {
       <label class="karaoke-field">选择曲目<select id="karaoke-song-select" ${locked ? "disabled" : ""}>${PERFORMANCE_SONGS.map((s) => `<option value="${s.id}" ${s.id === this.song.id ? "selected" : ""}>${s.title} · ${s.subtitle}</option>`).join("")}</select></label>
       <label class="karaoke-field">演奏速度 <span><b id="karaoke-bpm-label">${this.bpm}</b> BPM</span><input type="range" id="karaoke-bpm" min="40" max="120" step="1" value="${this.bpm}" ${locked ? "disabled" : ""}></label>
       <div class="karaoke-speed-presets"><button data-action="karaoke-slow" ${locked ? "disabled" : ""}>慢速练习</button><button data-action="karaoke-original" ${locked ? "disabled" : ""}>原速 ${this.song.bpm}</button><span>${Math.round(duration/1000)} 秒 · ${this.song.notes.length} 个音</span></div>
+      <p class="karaoke-preflight"><b>${this.song.title}</b> · ${this.bpm} BPM · 预计时长 ${this.formatTime(duration)}<br><span>建议戴耳机，避免节拍伴奏从扬声器串入麦克风。</span></p>
       <label class="karaoke-sound"><input type="checkbox" id="karaoke-sound" ${this.sound ? "checked" : ""} ${locked ? "disabled" : ""}> 节拍伴奏 <small>建议戴耳机，避免外放串音</small></label>
       <div class="karaoke-start-actions"><button class="button mic-button" data-action="karaoke-start" ${playing || this.status === "preview" ? "disabled" : ""}>${icon(this.status === "requesting" ? "pause" : "play")} ${this.status === "requesting" ? "等待授权 · 点击取消" : this.status === "paused" ? "倒数后继续演奏" : this.status === "finished" ? "再吹一遍" : "开始跟曲演奏"}</button>
       ${playing || this.status === "paused" ? `<div class="karaoke-secondary-actions">${playing ? `<button class="button button-outline" data-action="karaoke-pause">${icon("pause")} 暂停</button>` : ""}<button class="button button-outline" data-action="karaoke-end">结束并生成报告</button></div>` : `<button class="button button-outline" data-action="karaoke-preview" ${this.status === "requesting" ? "disabled" : ""}>${icon(this.status === "preview" ? "pause" : "headphone")} ${this.status === "preview" ? "停止试听" : "先听完整旋律"}</button>`}</div>
@@ -75,8 +78,8 @@ export class Karaoke {
       <div class="karaoke-chart-key"><span><i class="target-key"></i>目标音符</span><span><i class="trace-key"></i>我的音高</span><span>竖线到达音符左端时起音</span></div>
       <div class="karaoke-progress" role="progressbar" aria-label="演奏进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="karaoke-progress-fill"></i></div>
       <div id="karaoke-phrase" class="karaoke-phrase">${this.song.phrases[0]}</div><div class="karaoke-note-strip" id="karaoke-notes">${this.song.notes.map((n,i) => `<span data-karaoke-index="${i}">${noteMarkup(NOTES.find((note) => note.id === n.id))}<small>${n.beats === 1 ? "♩" : `${n.beats} 拍`}</small></span>`).join("")}</div>
-    </section><div id="karaoke-report">${this.report ? performanceReport(this.report) : ""}</div>`;
-    this.drawRoll(this.status === "paused" ? this.offset : 0);
+    </section><div id="karaoke-report">${this.report ? performanceReport(this.report, true, this.previousReport) : ""}</div>`;
+    this.drawRoll(this.status === "paused" ? this.offset : 0, true);
     if (this.status === "paused") this.updateProgress(this.offset);
     if (playing) this.tick();
   }
@@ -217,7 +220,9 @@ export class Karaoke {
     return true;
   }
 
-  drawRoll(elapsed) {
+  drawRoll(elapsed, force = false) {
+    if (!force && elapsed - this.lastDrawAt < 120) return;
+    this.lastDrawAt = elapsed;
     const timeline = this.performance?.timeline || songTimeline(this.song,this.bpm);
     const low = Math.min(...this.song.notes.map((n) => NOTES.find((note) => note.id === n.id).offset))-2;
     const high = Math.max(...this.song.notes.map((n) => NOTES.find((note) => note.id === n.id).offset))+2;
@@ -266,11 +271,12 @@ export class Karaoke {
     clearInterval(this.timer);
     this.context.audioService.engine.stopClicks();
     this.report = this.performance.finish(reason === "completed" ? this.performance.timeline.duration : elapsed, reason);
+    this.previousReport = this.context.store.getState().reports?.find((report) => report.songId === this.report.songId) || null;
     const saved = this.context.store.addReport(this.report);
     if (release) this.context.audioService.stopMic();
     this.render();
     this.updateProgress(this.report.elapsed);
-    this.drawRoll(this.report.elapsed);
+    this.drawRoll(this.report.elapsed, true);
     if (!saved) this.stage.querySelector("[data-save-status]").textContent = "本机存储不可用，请导出报告保存";
     if (reason === "completed" || reason === "ended") this.stage.querySelector("#karaoke-report").scrollIntoView({behavior:"smooth", block:"start"});
   }

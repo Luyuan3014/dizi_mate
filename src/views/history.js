@@ -6,7 +6,11 @@ import { performanceReport, exportPerformanceReport, escapeHTML } from "../compo
 
 export function renderReports(reports = []) {
   if (!reports.length) return `<div class="report-history-empty">还没有演奏报告。在今日陪练的「实时陪练 → 跟曲演奏」中吹一首，报告就会保存在这里。</div>`;
-  return reports.slice().reverse().map((r) => `<details class="report-history-item"><summary><span>${icon("chart")}<b>${escapeHTML(r.title)}</b><small>${new Date(r.at).toLocaleString("zh-CN")} · ${r.bpm} BPM · ${r.completed ? "完整演奏" : "提前结束"}</small></span><strong>${r.score === null ? "数据不足" : `${r.score} 分`}</strong></summary>${performanceReport(r)}</details>`).join("");
+  const ordered = reports.slice().reverse();
+  return ordered.map((r, index) => {
+    const previous = ordered.slice(index + 1).find((candidate) => candidate.songId === r.songId) || null;
+    return `<details class="report-history-item"><summary><span>${icon("chart")}<b>${escapeHTML(r.title)}</b><small>${new Date(r.at).toLocaleString("zh-CN")} · ${r.bpm} BPM · ${r.completed ? "完整演奏" : "提前结束"}</small></span><strong>${r.score === null ? "数据不足" : `${r.score} 分`}</strong></summary>${performanceReport(r, true, previous)}</details>`;
+  }).join("");
 }
 
 export function historyPage(state, stats) {
