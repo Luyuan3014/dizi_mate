@@ -10,6 +10,11 @@
   --color-accent: #b7652b;
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px;
   --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+  --shadow-card: 0 3px 14px rgba(39, 68, 48, 0.06);
+  --shadow-float: 0 14px 34px rgba(25, 51, 39, 0.12);
+  --shadow-focus: 0 0 0 3px rgba(233, 147, 85, 0.28);
+  --motion-fast: 180ms;
+  --motion-state: 260ms;
   font-family: "Nunito Sans", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   color: #263d33;
   background: #f7f8f3;
@@ -93,10 +98,10 @@ summary:focus-visible {
 button,
 a {
   transition:
-    background 0.18s,
-    color 0.18s,
-    transform 0.18s,
-    box-shadow 0.18s;
+    background var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast);
 }
 button:hover {
   filter: brightness(0.98);
@@ -1093,6 +1098,8 @@ h1 span {
   font-size: 10.5px;
   margin-left: 8px;
 }
+.caption-tip .icon,
+.long-beginner-banner .icon { width: 14px; height: 14px; flex: none; vertical-align: -3px; }
 .target-hz-badge {
   font-size: 13px;
   color: #8c9880;
@@ -2532,6 +2539,7 @@ dialog .button-primary {
   }
 }
 @media (max-width: 760px) {
+  .sidebar { display: none; }
   .sidebar {
     inset: auto 0 0;
     width: 100%;
@@ -2954,6 +2962,61 @@ dialog .button-primary {
   .dialog-description {
     font-size: 13px;
   }
+}
+
+/* Stage five mobile navigation and compact touch layout. */
+.mobile-nav,
+.mobile-more { display: none; }
+.tool-drawer {
+  width: min(92vw, 420px);
+  margin: auto 0 0 auto;
+  max-height: min(82vh, 620px);
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  padding: 24px 20px 28px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 -18px 50px #1933272b;
+}
+.tool-drawer::backdrop { background: #1a30284d; backdrop-filter: blur(3px); }
+.drawer-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.drawer-heading h2 { font-size: 20px; }
+.drawer-heading button { width: 44px; border-radius: 50%; background: var(--surface-soft); }
+.tool-drawer > p { color: var(--color-text-secondary); font-size: 13px; margin: 8px 0 18px; }
+.drawer-link { display: flex; align-items: center; gap: 12px; min-height: 52px; border-top: 1px solid var(--line); color: var(--color-text); font-size: 14px; }
+.drawer-link .icon:last-child { margin-left: auto; width: 16px; color: var(--color-text-muted); }
+.drawer-link[aria-current="page"] { color: var(--accent-strong); font-weight: 700; }
+.drawer-actions { display: grid; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.drawer-actions button { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 12px; border-radius: 10px; background: var(--surface-soft); color: var(--color-text-secondary); text-align: left; }
+
+@media (max-width: 760px) {
+  .sidebar .desktop-nav { display: none; }
+  .mobile-nav { position: fixed; inset: auto 0 0; z-index: 30; height: 68px; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px 6px max(4px, env(safe-area-inset-bottom)); background: #fffefaf2; border-top: 1px solid #e0e7d5; backdrop-filter: blur(12px); }
+  .mobile-nav-link { display: flex; min-height: 56px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 10px; color: var(--color-text-muted); font-size: 11px; }
+  .mobile-nav-link .icon { width: 20px; height: 20px; }
+  .mobile-nav-link.active { color: var(--green); background: #edf2e7; font-weight: 700; }
+  .mobile-more { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 44px; min-height: 44px; padding: 2px 4px; color: var(--color-text-secondary); font-size: 9px; border-radius: 8px; }
+  .mobile-more .icon { width: 18px; height: 18px; }
+  .instrument-fingering { display: none; }
+  .main-shell { margin-bottom: 76px; }
+  main { padding-bottom: 18px; }
+  .topbar-actions { align-items: center; }
+  .instrument-select { min-height: 44px; }
+  .flute-container { max-width: none; margin-top: 4px; }
+  .flute-stage { min-height: 154px; }
+  .flute-hole-btn { width: 46px; height: 46px; }
+  .flute-hole-btn .hole-disc { width: 30px; height: 30px; }
+  .flute-blow-btn { width: 46px; height: 46px; }
+  .fingering-caption { gap: 8px 12px; }
+  .fingering-caption .caption-tip { width: 100%; order: 3; }
+  .target-note-row { align-items: center; }
+  .listen-button { min-height: 44px; }
+  .tool-drawer { display: none; }
+  .tool-drawer[open] { display: block; }
+}
+
+@media (min-width: 761px) {
+  .tool-drawer { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *,
