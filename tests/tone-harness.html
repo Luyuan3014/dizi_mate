@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>笛伴 · 发音观察合成输入验收</title>
+  <body>
+    <div id="app"></div>
+    <aside id="tone-fixture" style="position:fixed;bottom:0;left:0;right:0;z-index:100;background:#182526;color:white;padding:8px;display:flex;gap:8px;flex-wrap:wrap;font:12px sans-serif">
+      <strong>验收输入 · 非竹笛实录 · 不调用真实麦克风</strong>
+      <button data-signal="clear">稳定单音</button><button data-signal="rich">正常强泛音</button>
+      <button data-signal="noise">混入噪声</button><button data-signal="clipped">输入失真</button>
+      <button data-signal="octave">高八度</button><button data-signal="silent">静音</button>
+      <button id="fixture-disconnect">设备中断</button>
+    </aside>
+    <script type="module">
+      const memory = new Map();
+      Object.defineProperty(window, "localStorage", { value: {
+        getItem: (key) => memory.get(key) || null, setItem: (key, value) => memory.set(key, value),
+      } });
+      let context, oscillator, toneGain, noiseGain, destination;
+      let mode = "silent";
+      const tracks = [];
+      function applyMode(next) {
+        mode = next;
+        if (!context) return;
+        oscillator.frequency.value = mode === "octave" ? 1479.977691 : 739.988845;
+        oscillator.type = "sine";
+        if (mode === "rich") {
+          oscillator.setPeriodicWave(context.createPeriodicWave(new Float32Array(5), new Float32Array([0, 0.4, 1, 0.35, 0.15])));
+        }
+        toneGain.gain.value = mode === "silent" ? 0 : mode === "clipped" ? 2 : 0.2;
+        noiseGain.gain.value = mode === "noise" ? 0.15 : 0;
+      }
+      Object.defineProperty(navigator, "mediaDevices", { value: { getUserMedia: async () => {
+        context ||= new AudioContext();
+        await context.resume();
+        if (!destination) {
+          destination = context.createMediaStreamDestination();
+          oscillator = context.createOscillator();
+          toneGain = context.createGain();
+          oscillator.connect(toneGain).connect(destination);
+          oscillator.start();
+          const noise = context.createBufferSource();
+          const buffer = context.createBuffer(1, context.sampleRate, context.sampleRate);
+          let seed = 13;
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < data.length; i++) {
+            seed = (1664525 * seed + 1013904223) >>> 0;
+            data[i] = seed / 2 ** 32 * 2 - 1;
+          }
+          noise.buffer = buffer;
+          noise.loop = true;
+          noiseGain = context.createGain();
+          noise.connect(noiseGain).connect(destination);
+          noise.start();
+        }
+        applyMode(mode);
+        const stream = destination.stream.clone();
+        tracks.push(...stream.getTracks());
+        return stream;
+      } } });
+      document.querySelectorAll("[data-signal]").forEach((button) => {
+        button.onclick = () => applyMode(button.dataset.signal);
+      });
+      document.querySelector("#fixture-disconnect").onclick = () => tracks.forEach((track) => {
+        const ended = track.onended;
+        track.stop();
+        ended?.();
+      });
+      await import("/src/main.js");
+    </script>
+  </body>
+</html>
