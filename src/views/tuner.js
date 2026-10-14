@@ -10,6 +10,7 @@ import {
 } from "../music.js";
 import { hero, noteMarkup, micControls, holeRow } from "../components/shared.js";
 import { icon } from "../components/icons.js";
+import { ToneObservation, toneObservationMarkup } from "../components/tone-observation.js";
 
 export function tunerPage(state) {
   const groups = [
@@ -39,6 +40,7 @@ export function tunerPage(state) {
       <div class="tuner-notes">${groups.map(([label, notes]) => `<section class="tuner-note-group"><h3>${label}</h3><div>${notes.map((n) => `<span data-tuner-note="${n.id}">${noteMarkup(n)}</span>`).join("")}</div></section>`).join("")}</div>
       <div class="tuner-fingering" id="tuner-fingering"><p>识别到音符后，这里同步显示对应孔位和气息要领。</p></div>
       <div class="hole-legend"><span><i class="legend-hole closed"></i>盖住</span><span><i class="legend-hole"></i>打开</span><span><i class="legend-hole half"></i>半孔</span></div>
+      ${toneObservationMarkup({ compact: true })}
       ${micControls()}
     </section>`;
 }
@@ -46,6 +48,7 @@ export function tunerPage(state) {
 export class TunerPage {
   constructor(context) {
     this.context = context;
+    this.observeTone = true;
     this.container = null;
     this.unsubscribe = null;
     this.tunerNoteId = null;
@@ -61,6 +64,8 @@ export class TunerPage {
     this.container.innerHTML = tunerPage(state);
 
     this.cacheElements();
+    this.observation = new ToneObservation(container.querySelector(".tone-observation"), this.context);
+    this.configureObservation(state);
     this.updateMicUI();
 
     this.container.addEventListener("click", this.boundClickHandler);
@@ -72,6 +77,8 @@ export class TunerPage {
   }
 
   unmount() {
+    this.observation?.destroy();
+    this.observation = null;
     this.tunerNoteId = null;
     if (this.unsubscribe) {
       this.unsubscribe();
@@ -121,10 +128,13 @@ export class TunerPage {
     });
     const select = this.container?.querySelector(".tuner-target-select");
     if (select) select.hidden = this.mode !== "target";
+    this.configureObservation(this.context.store.getState());
     this.paint(null);
   }
 
   update(state, changedKeys) {
+    if (changedKeys.has("micStatus") && state.micStatus === "requesting") this.observation?.reset({ keepPrevious: true });
+    if (["key", "reference", "micMode"].some((key) => changedKeys.has(key))) this.configureObservation(state);
     if (changedKeys.has("micLevel") || changedKeys.has("micNoise")) updateMicControls(this.container, state, { statusChanged: false });
     if (changedKeys.has("mic") || changedKeys.has("micStatus")) {
       this.updateMicUI();
@@ -150,6 +160,7 @@ export class TunerPage {
     if (!this.container) return;
     const state = this.context.store.getState();
     updateMicControls(this.container, state);
+    this.observation?.updateMicState(state);
     if (state.mic !== "on") this.paint(null);
   }
 
@@ -230,11 +241,27 @@ export class TunerPage {
     this.setFeedback(feedback.title, feedback.detail);
   }
 
-  onAudioFrame({ frequency }) {
+  configureObservation(state) {
+    this.observation?.configure(`${state.key}:${state.reference}:${this.mode}:${this.targetNoteId}:${state.micMode}`);
+  }
+
+  onMicStopped() { this.observation?.finish(); }
+  onToneExcluded() { this.observation?.exclude(performance.now()); }
+
+  onAudioFrame(data, { toneEnvironment } = {}) {
+    const { frequency } = data;
+    const last = this.observation?.tracker.lastFrequency;
+    const raw = data.rawFrequency ?? frequency;
+    if (this.mode === "free" && raw && last) {
+      const change = Math.abs(1200 * Math.log2(raw / last));
+      if (change > 100 && (change < 900 || change > 1500)) this.observation.reset();
+    }
+    this.observation?.update(performance.now(), data, toneEnvironment);
     this.paint(frequency);
   }
 
   onReferencePlaying() {
+    this.observation?.referencePlaying();
     this.paint(null);
     this.setFeedback(
       "先听一听，再试着吹",
@@ -258,6 +285,7 @@ export class TunerPage {
       this.context.store.setState({ micMode: event.target.value === "compatible" ? "compatible" : "precise" });
     } else if (event.target.id === "tuner-target-note") {
       this.targetNoteId = event.target.value;
+      this.configureObservation(this.context.store.getState());
       this.paint(null);
     }
   }

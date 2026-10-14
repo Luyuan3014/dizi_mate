@@ -10,6 +10,7 @@ import {
 import { hero, holeRow, micControls } from "../components/shared.js";
 import { LongToneChallenge } from "../practice.js";
 import { icon } from "../components/icons.js";
+import { ToneObservation, toneObservationMarkup } from "../components/tone-observation.js";
 
 export function longTonePage(state) {
   const note = state.longNote;
@@ -38,6 +39,7 @@ export function longTonePage(state) {
       <p class="challenge-rule">连续绿区 3 秒获青铜，5 秒获白银，8 秒获黄金。偏离或断音会重新计时，已获成绩保留；停吹后自动结算，单次最长 30 秒。</p>
       <div class="challenge-actions"><button class="button button-primary" data-action="long-start" id="long-start">开始挑战</button><button class="button button-outline" data-action="long-finish" id="long-finish" disabled>结束并评分</button></div>
       <div id="long-result" class="long-result" aria-live="polite" hidden></div>
+      ${toneObservationMarkup()}
       ${micControls()}
     </section>`;
 }
@@ -103,6 +105,7 @@ export function resultMarkup(result) {
 export class LongTonePage {
   constructor(context) {
     this.context = context;
+    this.observeTone = true;
     this.container = null;
     this.unsubscribe = null;
     this.boundClickHandler = this.handleClick.bind(this);
@@ -115,6 +118,8 @@ export class LongTonePage {
     this.container.innerHTML = longTonePage(state);
 
     this.cacheElements();
+    this.observation = new ToneObservation(container.querySelector(".tone-observation"), this.context);
+    this.configureObservation(state);
     this.updateMicUI();
     this.paint();
 
@@ -131,6 +136,8 @@ export class LongTonePage {
     this.countdownTimer = null;
     this.generation = (this.generation || 0) + 1;
     this.finish();
+    this.observation?.destroy();
+    this.observation = null;
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
@@ -174,6 +181,8 @@ export class LongTonePage {
   }
 
   update(state, changedKeys) {
+    if (changedKeys.has("micStatus") && state.micStatus === "requesting") this.observation?.reset({ keepPrevious: true });
+    if (["longNote", "key", "reference", "micMode"].some((key) => changedKeys.has(key))) this.configureObservation(state);
     if (changedKeys.has("micLevel") || changedKeys.has("micNoise")) updateMicControls(this.container, state, { statusChanged: false });
     if (changedKeys.has("mic") || changedKeys.has("micStatus")) {
       this.updateMicUI();
@@ -193,8 +202,18 @@ export class LongTonePage {
     if (!this.container) return;
     const state = this.context.store.getState();
     updateMicControls(this.container, state);
+    this.observation?.updateMicState(state);
 
   }
+
+  configureObservation(state) {
+    this.observation?.configure(`${state.key}:${state.reference}:${state.longNote.id}:${state.micMode}`);
+  }
+
+  onMicStopped() { this.observation?.finish(); }
+  onStopDemo() { this.observation?.stopReference(); }
+  onReferencePlaying() { this.observation?.referencePlaying(); }
+  onToneExcluded() { this.observation?.exclude(performance.now()); }
 
   updateNoteDetails(state) {
     const note = state.longNote;
@@ -298,6 +317,7 @@ export class LongTonePage {
     this.countdownTimer = null;
     this.countdownValue = null;
     this.context.audioService.stopDemo();
+    this.observation?.reset({ keepPrevious: true });
     const state = this.context.store.getState();
     const challenge = new LongToneChallenge(state.tolerance);
     this.lastChartPaint = 0;
@@ -364,15 +384,17 @@ export class LongTonePage {
     this.finish(false);
   }
 
-  onAudioFrame({ frequency, rms }) {
+  onAudioFrame(data, { toneEnvironment } = {}) {
+    const { frequency, rms } = data;
     const state = this.context.store.getState();
-    if (!state.longArmed || !state.challenge) return;
     if (this.countdownValue) {
       this.setFeedback("准备吹奏", `${this.countdownValue} 秒后开始计时，先吸气。`);
       return;
     }
 
     const now = performance.now();
+    this.observation?.update(now, data, toneEnvironment);
+    if (!state.longArmed || !state.challenge) return;
     const cents = frequency
       ? centsBetween(
           frequency,
@@ -415,6 +437,8 @@ export class LongTonePage {
       this.finish();
     } else if (action === "mic") {
       this.context.audioService.startMic();
+    } else if (action === "long-listen") {
+      this.context.audioService.listen(this.context.store.getState().longNote);
     }
   }
 
