@@ -1,4 +1,49 @@
 /* Shared tools and the expanded instrument range. */
+.tone-observation { margin-top: 24px; padding-top: 22px; border-top: 1px solid #dce3e6; text-align: left; color: #283c43; min-width: 0; }
+.tone-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.tone-heading h2, .tone-heading h3 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: 0; }
+.tone-heading span { font-size: 11px; color: #637078; }
+.tone-mic-toggle { min-height: 44px; border-radius: 6px; font-size: 12px; margin-top: 12px; }
+.tone-verdict { min-height: 82px; padding: 16px 0 10px; }
+.tone-verdict strong { display: block; font-size: 15px; color: #53636b; }
+.tone-verdict[data-tone-kind="observed"] strong { color: #187589; }
+.tone-verdict[data-tone-kind="attention"] strong { color: #98502f; }
+.tone-verdict p { margin: 6px 0 0; font-size: 12px; line-height: 1.7; color: #53636b; }
+.tone-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 8px 0 20px; }
+.tone-metrics > div { min-width: 0; padding-left: 12px; border-left: 2px solid #dbe8eb; }
+.tone-metrics dt { font-size: 11px; color: #637078; }
+.tone-metrics dd { min-height: 26px; margin: 6px 0 0; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tone-trace-heading, .tone-spectrum-labels { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 11px; color: #637078; }
+.tone-trace-wrap { position: relative; padding-left: 44px; margin-top: 8px; }
+.tone-trace-wrap > span { position: absolute; top: 5px; left: 0; color: #637078; font-size: 10px; }
+.tone-trace-wrap > span:last-child { top: 73px; }
+.tone-trace { display: block; width: 100%; height: 100px; }
+.tone-take { min-height: 42px; margin: 12px 0; font-size: 12px; line-height: 1.8; color: #53636b; }
+.tone-details { padding: 12px 0; border-top: 1px solid #e4eaec; border-bottom: 1px solid #e4eaec; }
+.tone-details summary { min-height: 36px; cursor: pointer; font-size: 12px; color: #315861; }
+.tone-details summary .icon { width: 15px; height: 15px; vertical-align: -3px; margin-right: 5px; }
+.tone-details p, .tone-caveat, .tone-reference p { font-size: 11px; line-height: 1.8; color: #637078; margin: 10px 0 0; overflow-wrap: anywhere; }
+.tone-spectrogram-wrap { position: relative; margin: 6px 0 7px; padding-left: 44px; }
+.tone-spectrogram-wrap > span { position: absolute; left: 0; top: 0; color: #637078; font-size: 10px; }
+.tone-spectrogram-wrap > span:last-child { top: auto; bottom: 0; }
+.tone-spectrogram-wrap canvas { display: block; width: 100%; height: 180px; border-radius: 4px; background: #182526; }
+.tone-spectrum-labels { padding-left: 44px; font-size: 10px; }
+.tone-energy-legend { display: flex; align-items: center; gap: 5px; }
+.tone-energy-legend i { display: inline-block; width: 40px; height: 6px; background: linear-gradient(90deg, #182526, #f1da65); }
+.tone-reference { margin-top: 20px; padding-top: 18px; border-top: 1px solid #e4eaec; }
+.tone-reference-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.tone-reference-actions .button { min-height: 44px; font-size: 12px; border-radius: 6px; }
+.tone-reference audio { display: block; width: 100%; margin-top: 12px; height: 42px; }
+.tone-compact .tone-verdict { min-height: 75px; }
+@media (max-width: 600px) {
+  .tone-metrics { gap: 8px; }
+  .tone-metrics > div { padding-left: 7px; }
+  .tone-metrics dd { font-size: 13px; }
+  .tone-reference-actions .button { flex: 1 1 160px; justify-content: center; }
+  .tone-spectrogram-wrap { padding-left: 38px; }
+  .tone-spectrum-labels { padding-left: 38px; }
+}
+
 [hidden] { display: none !important; }
 .notation.high-note .note-dot { top: -9px; bottom: auto; }
 .explorer-notes { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); row-gap: 22px; }
