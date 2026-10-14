@@ -49,7 +49,7 @@ export class AudioService {
             );
           }
         },
-        { mode: state.micMode || "precise" },
+        { mode: state.micMode || "precise", observeTone: Boolean(this.getActivePage()?.observeTone) },
       );
       if (!started || generation !== this.micGeneration) return;
       this.store.setState({
@@ -57,12 +57,14 @@ export class AudioService {
         micStatus: "testing",
       });
       this.noiseSamples = [];
+      this.toneNoiseSamples = [];
       const tested = await new Promise((resolve) => {
         this.resolveMicTest = resolve;
         this.micTestTimer = setTimeout(() => { this.resolveMicTest = null; resolve(true); }, 1000);
       });
       if (!tested || generation !== this.micGeneration) return;
       const noise = this.noiseSamples.reduce((sum, rms) => sum + rms, 0) / Math.max(1, this.noiseSamples.length);
+      this.toneNoiseFloor = this.toneNoiseSamples.reduce((sum, rms) => sum + rms, 0) / Math.max(1, this.toneNoiseSamples.length);
       this.store.setState({ micStatus: "ready", micNoise: noise > 0.015 ? "noisy" : "quiet", sessionStarted: performance.now() });
       const page = this.getActivePage();
       if (page?.setFeedback) {
@@ -109,6 +111,7 @@ export class AudioService {
     this.resolveMicTest?.(false);
     this.resolveMicTest = null;
     this.engine.stop();
+    this.toneNoiseFloor = 0;
     if (state.sessionStarted) {
       const seconds = Math.round(
         (performance.now() - state.sessionStarted) / 1000,
@@ -148,7 +151,10 @@ export class AudioService {
       micLevel: level,
     });
     if (state.micStatus === "testing") {
-      if (!data.referencePlaying && !data.metronomeBeat) this.noiseSamples?.push(data.rms || 0);
+      if (!data.referencePlaying && !data.metronomeBeat) {
+        this.noiseSamples?.push(data.rms || 0);
+        if (data.tone) this.toneNoiseSamples?.push(data.tone.rms);
+      }
       return;
     }
     if (this.getActivePage()?.consumeAudioFrame?.(data)) return;
@@ -162,6 +168,7 @@ export class AudioService {
 
     if (data.metronomeBeat) {
       this.confidence.pause(now);
+      this.getActivePage()?.onToneExcluded?.();
       return;
     }
 
@@ -169,6 +176,7 @@ export class AudioService {
     page?.onAudioFrame?.(data, {
       confidence: this.confidence,
       engine: this.engine,
+      toneEnvironment: { noiseFloor: this.toneNoiseFloor || 0, noisy: this.toneNoiseFloor > 0.015, compatible: state.micMode === "compatible" },
     });
   }
 

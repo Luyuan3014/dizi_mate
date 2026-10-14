@@ -1,3 +1,5 @@
+import { analyseTone } from "./tone-quality.js";
+
 // YIN: normalized difference rejects weak/noisy signals and favors the fundamental.
 export function detectPitch(samples, sampleRate) {
   const size = Math.floor(samples.length / 2);
@@ -204,7 +206,7 @@ export class AudioEngine {
     this.clickWindows = [];
   }
 
-  async start(onFrame, onEnded, { mode = "precise" } = {}) {
+  async start(onFrame, onEnded, { mode = "precise", observeTone = false } = {}) {
     this.stop();
     const requestId = this.requestId;
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
@@ -240,6 +242,16 @@ export class AudioEngine {
       this.highpass.Q.value = 20 * Math.log10(Math.SQRT1_2);
       this.source.connect(this.highpass);
       this.highpass.connect(analyser);
+      if (observeTone) {
+        this.toneAnalyser = this.context.createAnalyser();
+        this.toneAnalyser.fftSize = 4096;
+        this.toneAnalyser.smoothingTimeConstant = 0;
+        this.source.connect(this.toneAnalyser);
+      }
+      const rawSamples = observeTone ? new Float32Array(4096) : null;
+      const spectrum = observeTone ? new Float32Array(2048) : null;
+      const settings = stream.getAudioTracks()[0].getSettings?.() || {};
+      const processing = mode === "compatible" || ["noiseSuppression", "echoCancellation", "autoGainControl"].some((key) => settings[key] === true);
       stream.getAudioTracks()[0].onended = onEnded;
       const samples = new Float32Array(analyser.fftSize);
       // Sampling is independent of repaint rate (occluded windows can throttle RAF).
@@ -255,7 +267,14 @@ export class AudioEngine {
           onFrame({ frequency: null, rms: 0, referencePlaying: now < this.mutedUntil, metronomeBeat });
         } else {
           const result = detectPitch(samples, this.context.sampleRate);
-          onFrame({ ...result, frequency: this.smoother.update(result.frequency) });
+          let tone;
+          if (this.toneAnalyser) {
+            this.toneAnalyser.getFloatTimeDomainData(rawSamples);
+            this.toneAnalyser.getFloatFrequencyData(spectrum);
+            tone = analyseTone(rawSamples, spectrum, this.context.sampleRate, result.frequency, processing);
+          }
+          onFrame({ ...result, frequency: this.smoother.update(result.frequency), rawFrequency: result.frequency,
+            tone, spectrum, binWidth: this.context.sampleRate / analyser.fftSize, inputDevice: settings.deviceId || null });
         }
         if (requestId === this.requestId) this.sampleTimer = setTimeout(tick, 70);
       };
@@ -276,6 +295,8 @@ export class AudioEngine {
     });
     this.source?.disconnect();
     this.highpass?.disconnect();
+    this.toneAnalyser?.disconnect();
+    this.toneAnalyser = null;
     this.highpass = null;
     this.smoother.reset();
     this.source = null;
