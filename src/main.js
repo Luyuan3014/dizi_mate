@@ -100,3 +100,9 @@ window.addEventListener("pagehide", () => {
 });
 
 router.init("practice");
+
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, { once: true });
+}

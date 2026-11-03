@@ -1,0 +1,25 @@
+{
+  "name": "笛伴 DiziMate",
+  "short_name": "笛伴",
+  "description": "陪你从第一个音开始的竹笛练习台。",
+  "lang": "zh-CN",
+  "start_url": "/#practice",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f3",
+  "theme_color": "#f7f8f3",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
