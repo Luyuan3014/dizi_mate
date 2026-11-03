@@ -1,4 +1,4 @@
-import { NOTES, KEYS, frequencyFor, centsBetween } from "./music.js";
+import { NOTES, KEYS, frequencyFor, centsBetween, STORY_FLUTE_MELODY } from "./music.js";
 
 // Each pair is [note, beats]; these are complete melodies, separate from library excerpts.
 const melody = (ids, lengths = {}) => ids.split(" ").map((id, i) => ({ id, beats: lengths[i] || 1 }));
@@ -12,6 +12,10 @@ export const PERFORMANCE_SONGS = [
   { id: "joy-theme", title: "欢乐颂", subtitle: "完整主题 · 32 拍", bpm: 72, beats: 4,
     notes: melody("3 3 4 5 5 4 3 2 1 1 2 3 3 2 2 3 3 4 5 5 4 3 2 1 1 2 3 2 1 1", {12:1.5,13:.5,14:2,27:1.5,28:.5,29:2}),
     phrases: ["欢乐女神，圣洁美丽", "灿烂光芒照大地", "我们怀着火焰般的热情", "来到你的圣殿里"], boundaries: [0,8,15,23,30] },
+  { id: "story-flute-full", title: "这是谁的故事（前奏笛子）", subtitle: "前奏竹笛听记 · 38 个音 · 20 拍", bpm: 72, beats: 4,
+    notes: STORY_FLUTE_MELODY.map(([id, beats]) => ({ id, beats })),
+    phrases: ["高音 1 起句，7 滑向 6", "3 与 5 的跳进", "6、5 回环", "高音 2 一闪", "落到低音区", "两次高音 1", "5、6 颤音收尾"],
+    boundaries: [0,4,8,14,17,25,29,38] },
 ];
 
 export function songTimeline(song, bpm = song.bpm) {

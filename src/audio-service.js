@@ -304,8 +304,11 @@ export class AudioService {
     this.syncMetronomeState();
   }
 
-  async startMetronome(sequence = null) {
+  async startMetronome(sequence = null, options = {}) {
     const state = this.store.getState();
+    const bpm = options.bpm ?? state.metronome.bpm;
+    // Overrides let a song demo be heard at its original key/tempo without changing the player's instrument settings.
+    const key = options.key ?? state.key;
     const isRunning = this.metronome.running || state.metronome.running;
     if ((sequence && state.demo) || (!sequence && isRunning)) {
       this.stopDemo();
@@ -316,17 +319,20 @@ export class AudioService {
     this.stopMetronome();
     this.store.setState({
       demo: !!sequence,
-      metronome: { ...state.metronome, running: true },
+      metronome: { ...state.metronome, bpm, running: true },
     });
 
     try {
       await this.metronome.start({
         ...state.metronome,
+        bpm,
         sequence,
+        durations: options.durations ?? null,
+        clicks: options.clicks !== false,
         frequencyForNote: (id) =>
           frequencyFor(
             NOTES.find((n) => n.id === id),
-            state.key,
+            key,
             state.reference,
           ),
       });

@@ -15,6 +15,18 @@ function songProgressFor(state, song) {
   return { index: direct?.index || 0, completion: direct?.completion ?? (report ? Math.round((report.elapsed / report.duration) * 100) : 0), score: direct?.score ?? report?.score ?? null, lastAt: direct?.lastAt || report?.at || 0 };
 }
 
+// 简谱显示：低音加下点、高音加上点，避免曲卡上直接露出 high1 / low5 这类内部 id。
+function notationMarks(id) {
+  const note = NOTES.find((n) => n.id === id);
+  if (!note) return id;
+  if (note.low) return `${note.number}<sub>·</sub>`;
+  if (note.high) return `${note.number}<sup>·</sup>`;
+  return note.number;
+}
+
+const songBeatTotal = (song) => song.durations ? song.durations.reduce((sum, value) => sum + value, 0) : song.sequence.length;
+const beatLabel = (beats) => String(beats).replace(".25", "¼").replace(".5", "½").replace(".75", "¾");
+
 export function songsPage(state, activeSongId = "two-tigers", filter = "all") {
   const activeSong = SONGS.find((s) => s.id === activeSongId) || SONGS[0];
   state = { metronome: { bpm: 60, beats: 4, open: false, running: false }, ...state, metronome: state.metronome || { bpm: 60, beats: 4, open: false, running: false } };
@@ -38,18 +50,20 @@ export function songsPage(state, activeSongId = "two-tigers", filter = "all") {
           <span class="level-tag">${activeSong.tag}</span>
           <span class="song-difficulty-badge">难度 ${activeSong.difficulty}</span>
           <span class="song-meta-badge">建议 ${activeSong.bpm} BPM</span>
+          ${activeSong.key ? `<span class="song-meta-badge">原调 ${activeSong.key}</span>` : ""}
         </div>
         <h2>${activeSong.title}</h2>
-        <p>${activeSong.subtitle} · ${activeSong.sequence.length} 拍 · 建议 ${activeSong.bpm} BPM · ${activeSong.duration}</p>
+        <p>${activeSong.subtitle} · ${beatLabel(songBeatTotal(activeSong))} 拍 · 建议 ${activeSong.bpm} BPM · ${activeSong.duration}</p>
         <div class="song-preview" id="song-preview-container">${activeSong.sequence
           .map(
             (id, i) =>
-              `<span data-song-beat="${i}"><ruby>${id}<rt>${activeSong.lyrics?.[i] || ""}</rt></ruby></span>`,
+              `<span data-song-beat="${i}"><ruby><span class="song-note">${notationMarks(id)}</span><rt>${activeSong.lyrics?.[i] || ""}</rt></ruby></span>`,
           )
           .join(" ")}</div>
         <p class="song-tip">${icon("help")} ${activeSong.tip}</p>
         <div class="song-progress-summary">${songProgressFor(state, activeSong).score === null ? "还没有成绩" : `上次 ${songProgressFor(state, activeSong).score} 分`} · 完成度 ${songProgressFor(state, activeSong).completion}%</div>
         <div class="song-actions-row">
+          ${activeSong.audio ? `<button class="button button-outline" data-action="song-audio" aria-pressed="false">${icon("play")} <span id="song-audio-label">试听原声</span></button>` : ""}
           <button class="button button-outline" data-action="song-demo">${icon(state.demo ? "pause" : "play")} <span id="song-demo-label">${state.demo ? "停止示范" : "试听整段旋律"}</span></button>
           <button class="button button-outline" data-action="apply-bpm" data-bpm="${activeSong.bpm}">${icon("clock")} 应用建议速度 (${activeSong.bpm} BPM)</button>
           <button class="button button-outline" data-action="performance" data-song-id="${activeSong.id}">跟曲演奏 ${icon("music")}</button>
@@ -61,8 +75,8 @@ export function songsPage(state, activeSongId = "two-tigers", filter = "all") {
     <section class="songs-shelf">
       <div class="shelf-header">
         <div>
-          <h3>初学者曲谱选集</h3>
-          <p>从简到难精选 6 首适合起步的经典短旋律，后续进阶曲目将持续添加。</p>
+          <h3>曲谱选集</h3>
+          <p>从简到难精选 ${SONGS.length} 首旋律，从入门儿歌到流行听记，后续持续添加。</p>
         </div>
         <div class="song-filters" role="group" aria-label="曲谱筛选"><button class="filter-tab ${filter === "all" ? "active" : ""}" data-action="song-filter" data-filter="all">全部</button><button class="filter-tab ${filter === "recent" ? "active" : ""}" data-action="song-filter" data-filter="recent">最近练习</button><button class="filter-tab ${filter === "favorites" ? "active" : ""}" data-action="song-filter" data-filter="favorites">收藏</button><button class="filter-tab ${filter === "easy" ? "active" : ""}" data-action="song-filter" data-filter="easy">简单</button></div><span class="shelf-count">共 ${filteredSongs.length} 首</span>
       </div>
@@ -76,10 +90,10 @@ export function songsPage(state, activeSongId = "two-tigers", filter = "all") {
             </div>
             <h4>${song.title}</h4>
             <p class="song-item-sub">${song.subtitle}</p>
-            <div class="song-item-preview">${song.sequence.slice(0, 8).join(" ")}${song.sequence.length > 8 ? " …" : ""}</div>
+            <div class="song-item-preview">${song.sequence.slice(0, 8).map(notationMarks).join(" ")}${song.sequence.length > 8 ? " …" : ""}</div>
             <div class="song-item-meta">
               <span>${icon("clock")} ${song.bpm} BPM</span>
-              <span>${song.sequence.length} 拍</span>
+              <span>${beatLabel(songBeatTotal(song))} 拍</span>
               <span>上次 ${songProgressFor(state, song).score === null ? "—" : `${songProgressFor(state, song).score} 分`}</span>
             </div>
             <div class="song-item-actions">
@@ -101,6 +115,7 @@ export class SongsPage {
     this.activeSongId = "two-tigers";
     this.filter = "all";
     this.unsubscribe = null;
+    this.audioEl = null;
     this.boundClickHandler = this.handleClick.bind(this);
     this.boundInputHandler = this.handleInput.bind(this);
     this.boundChangeHandler = this.handleChange.bind(this);
@@ -134,6 +149,11 @@ export class SongsPage {
       this.unsubscribe();
       this.unsubscribe = null;
     }
+    if (this.audioEl) {
+      this.audioEl.pause();
+      this.audioEl.removeAttribute("src");
+      this.audioEl = null;
+    }
     if (this.container) {
       this.container.removeEventListener("click", this.boundClickHandler);
       this.container.removeEventListener("input", this.boundInputHandler);
@@ -151,15 +171,54 @@ export class SongsPage {
     this.songDemoLabel = this.container.querySelector("#song-demo-label");
     this.songDemoButton = this.container.querySelector("[data-action='song-demo']");
     this.songBeats = this.container.querySelectorAll("[data-song-beat]");
+    this.audioButton = this.container.querySelector("[data-action='song-audio']");
+    this.syncAudioUI();
   }
 
   setText(el, text) {
     if (el && el.textContent !== text) el.textContent = text;
   }
 
+  syncAudioUI() {
+    if (!this.audioButton) return;
+    const playing = Boolean(this.audioEl && !this.audioEl.paused && !this.audioEl.ended);
+    this.audioButton.innerHTML = `${icon(playing ? "pause" : "play")} <span id="song-audio-label">${playing ? "停止原声" : "试听原声"}</span>`;
+    this.audioButton.setAttribute("aria-pressed", String(playing));
+  }
+
+  toggleSongAudio() {
+    const song = this.getActiveSong();
+    if (!song.audio) return;
+    if (!this.audioEl) {
+      this.audioEl = new Audio();
+      this.audioEl.preload = "none";
+      this.audioEl.addEventListener("play", () => this.syncAudioUI());
+      this.audioEl.addEventListener("pause", () => this.syncAudioUI());
+      this.audioEl.addEventListener("ended", () => this.syncAudioUI());
+      this.audioEl.addEventListener("error", () => {
+        // 原声是版权素材，可能没有随仓库发布；缺文件时收起按钮，不影响其他功能。
+        this.audioButton?.remove();
+        this.audioButton = null;
+        this.context.shell.toast("这段原声暂时不可用，合成示范与练习不受影响。");
+      });
+    }
+    const url = new URL(song.audio, location.href).href;
+    if (this.audioEl.src !== url) this.audioEl.src = url;
+    if (!this.audioEl.paused) {
+      this.audioEl.pause();
+      return;
+    }
+    this.context.audioService.stopDemo();
+    this.audioEl.play().then(() => this.syncAudioUI()).catch(() => {
+      this.context.shell.toast("浏览器没能播放原声，请再点一次试试。");
+      this.syncAudioUI();
+    });
+  }
+
   update(state, changedKeys) {
     if (changedKeys.has("metronome")) {
       this.updateMetronomeUI();
+      this.updateDemoUI(state);
     }
     if (changedKeys.has("demo")) {
       this.updateDemoUI(state);
@@ -179,9 +238,9 @@ export class SongsPage {
 
   updateDemoUI(state) {
     if (!this.container) return;
-    const demo = state.demo && this.context.audioService.metronome.sequence;
+    const demo = Boolean(state.demo);
     if (this.songDemoButton) {
-      this.songDemoButton.innerHTML = `${icon(demo ? "pause" : "play")} <span id="song-demo-label">${demo ? "停止示范" : "节拍器同步打拍示范"}</span>`;
+      this.songDemoButton.innerHTML = `${icon(demo ? "pause" : "play")} <span id="song-demo-label">${demo ? "停止示范" : "试听整段旋律"}</span>`;
     }
     if (!state.demo) {
       this.songBeats?.forEach((el) => el.classList.remove("current"));
@@ -205,6 +264,7 @@ export class SongsPage {
   switchSong(songId) {
     if (songId === this.activeSongId) return;
     this.context.audioService.stopDemo();
+    this.audioEl?.pause();
     this.activeSongId = songId;
     const state = this.context.store.getState();
     this.container.innerHTML = songsPage(state, this.activeSongId, this.filter);
@@ -236,9 +296,12 @@ export class SongsPage {
         setMetronomeBpm(this.context, bpm);
         this.context.shell.toast(`节拍器已设置为推荐速度 ${bpm} BPM`);
       }
+    } else if (action === "song-audio") {
+      this.toggleSongAudio();
     } else if (action === "song-demo") {
       const song = this.getActiveSong();
-      this.context.audioService.startMetronome(song.sequence);
+      this.audioEl?.pause();
+      this.context.audioService.startMetronome(song.sequence, { durations: song.durations, bpm: song.bpm, key: song.key, clicks: false });
     } else if (action === "lesson") {
       const songId = button.dataset.songId || this.activeSongId;
       const song = SONGS.find((s) => s.id === songId) || SONGS[0];
@@ -267,7 +330,7 @@ export class SongsPage {
     } else if (action === "performance") {
       const song = SONGS.find((s) => s.id === (button.dataset.songId || this.activeSongId)) || SONGS[0];
       this.context.store.updateSongProgress(song.id, { index: 0 });
-      const performanceId = { "two-tigers": "tigers-full", "twinkle-star": "star-full", "ode-to-joy": "joy-theme" }[song.id] || "tigers-full";
+      const performanceId = { "two-tigers": "tigers-full", "twinkle-star": "star-full", "ode-to-joy": "joy-theme", "story-flute": "story-flute-full" }[song.id] || "tigers-full";
       this.context.store.setState({ songLaunchMode: "karaoke", songLaunchId: performanceId });
       this.context.router.navigate("practice");
     } else if (action === "metronome") {

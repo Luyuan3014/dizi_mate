@@ -9,7 +9,7 @@ export class Metronome {
     this.visualTimers = new Set();
   }
 
-  async start({ bpm = 60, beats = 4, sequence = null, frequencyForNote } = {}) {
+  async start({ bpm = 60, beats = 4, sequence = null, durations = null, clicks = true, frequencyForNote } = {}) {
     this.stop();
     const generation = this.generation;
     const context = await this.engine.ready();
@@ -18,7 +18,9 @@ export class Metronome {
     this.beats = [2, 3, 4].includes(beats) ? beats : 4;
     this.running = true;
     this.sequence = sequence;
+    this.durations = durations;
     this.tickIndex = 0;
+    this.beatCursor = 0;
     this.nextTime = context.currentTime + 0.06;
     const later = (callback, time) => {
       const timer = setTimeout(() => {
@@ -38,11 +40,14 @@ export class Metronome {
           later(() => { this.stop(); this.onStop(); }, this.nextTime);
           return;
         }
-        const beat = index % this.beats;
-        this.engine.click(this.nextTime, beat === 0);
-        if (sequence?.[index]) this.engine.scheduleTone(frequencyForNote(sequence[index]), interval * 0.82, this.nextTime);
+        // Optional per-note lengths let an excerpt keep its own rhythm instead of one note per click.
+        const step = sequence ? (durations?.[index] ?? 1) : 1;
+        const beat = Math.floor(this.beatCursor) % this.beats;
+        this.beatCursor += step;
+        if (clicks) this.engine.click(this.nextTime, beat === 0);
+        if (sequence?.[index]) this.engine.scheduleTone(frequencyForNote(sequence[index]), interval * (durations ? step * 0.95 : 0.82), this.nextTime);
         later(() => this.onBeat(beat, index), this.nextTime);
-        this.nextTime += interval;
+        this.nextTime += interval * step;
       }
       this.timer = setTimeout(schedule, 25);
     };

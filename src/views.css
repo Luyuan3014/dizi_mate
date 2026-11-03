@@ -270,6 +270,9 @@
 .song-preview span { padding: 4px 8px; border-radius: 7px; transition: background 0.15s, color 0.15s; }
 .song-preview span.current { background: #527943; color: white; box-shadow: 0 2px 8px rgba(82, 121, 67, 0.35); }
 .song-preview ruby { display: inline-flex; flex-direction: column; align-items: center; }
+.song-preview .song-note { display: inline-block; }
+.song-preview .song-note sup, .song-item-preview sup { font-size: 0.55em; vertical-align: super; line-height: 0; }
+.song-preview .song-note sub, .song-item-preview sub { font-size: 0.55em; vertical-align: sub; line-height: 0; }
 .song-preview rt { font-size: 11px; color: #7d8f70; font-weight: 400; margin-top: 2px; }
 .song-preview span.current rt { color: #e5f0dc; }
 
